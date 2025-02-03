@@ -11,7 +11,7 @@ import {
   StarFilled,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import { getFileList, FileItem, createFolder } from '../services/api';
+import { getFileList, FileItem, createFolder, deleteFile } from '../services/api';
 import dayjs from 'dayjs';
 
 interface BreadcrumbItem {
@@ -201,7 +201,23 @@ const CloudDrive: React.FC = () => {
       message.warning('请选择要删除的文件');
       return;
     }
-    message.info('批量删除功能待实现');
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除选中的 ${selectedRows.length} 个文件/文件夹吗？`,
+      okText: '确认',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          const deletePromises = selectedRows.map(file => deleteFile(file.ID));
+          await Promise.all(deletePromises);
+          message.success('删除成功');
+          setSelectedRows([]);
+          fetchFileList(pagination.current, pagination.pageSize);
+        } catch (error) {
+          message.error('删除失败');
+        }
+      },
+    });
   };
 
   const handleSingleDownload = (file: FileItem) => {
@@ -213,7 +229,21 @@ const CloudDrive: React.FC = () => {
   };
 
   const handleSingleDelete = (file: FileItem) => {
-    message.info(`删除文件：${file.Name}`);
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除 ${file.Name} 吗？`,
+      okText: '确认',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deleteFile(file.ID);
+          message.success('删除成功');
+          fetchFileList(pagination.current, pagination.pageSize);
+        } catch (error) {
+          message.error('删除失败');
+        }
+      },
+    });
   };
 
   const handleTableChange = (pagination: any) => {

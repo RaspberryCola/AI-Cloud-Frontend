@@ -122,6 +122,12 @@ interface CreateFolderResponse {
   data: FileItem;
 }
 
+// 删除文件响应类型
+interface DeleteFileResponse {
+  code: number;
+  message: string;
+}
+
 // API函数
 export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   return api.post('/users/login', data);
@@ -146,4 +152,8 @@ export const createFolder = async (data: CreateFolderRequest): Promise<CreateFol
       'Content-Type': 'multipart/form-data',
     },
   });
+};
+
+export const deleteFile = async (fileId: string): Promise<DeleteFileResponse> => {
+  return api.delete(`/files/delete`, { params: { file_id: fileId } });
 }; 
