@@ -25,6 +25,10 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
+    // 如果是二进制数据，直接返回
+    if (response.config.responseType === 'blob') {
+      return response;
+    }
     return response.data;
   },
   (error) => {
@@ -128,6 +132,13 @@ interface DeleteFileResponse {
   message: string;
 }
 
+// 上传文件响应类型
+interface UploadFileResponse {
+  code: number;
+  message: string;
+  data: FileItem;
+}
+
 // API函数
 export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   return api.post('/users/login', data);
@@ -156,4 +167,26 @@ export const createFolder = async (data: CreateFolderRequest): Promise<CreateFol
 
 export const deleteFile = async (fileId: string): Promise<DeleteFileResponse> => {
   return api.delete(`/files/delete`, { params: { file_id: fileId } });
+};
+
+export const downloadFile = async (fileId: string): Promise<Blob> => {
+  const response = await api.get(`/files/download`, {
+    params: { file_id: fileId },
+    responseType: 'blob',
+    transformResponse: (data) => data, // 防止响应被处理
+  });
+  return response.data;
+};
+
+export const uploadFile = async (file: File, parentId?: string): Promise<UploadFileResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (parentId) {
+    formData.append('parent_id', parentId);
+  }
+  return api.post('/files/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }; 

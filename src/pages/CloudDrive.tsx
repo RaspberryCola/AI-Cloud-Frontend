@@ -11,7 +11,7 @@ import {
   StarFilled,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import { getFileList, FileItem, createFolder, deleteFile } from '../services/api';
+import { getFileList, FileItem, createFolder, deleteFile, downloadFile, uploadFile } from '../services/api';
 import dayjs from 'dayjs';
 
 interface BreadcrumbItem {
@@ -148,7 +148,32 @@ const CloudDrive: React.FC = () => {
   ];
 
   const handleUpload = () => {
-    message.info('上传功能待实现');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.onchange = async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (!files || files.length === 0) return;
+
+      const currentFolder = currentPath[currentPath.length - 1];
+      const parentId = currentFolder.id || undefined;
+
+      try {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          message.loading({ content: `正在上传: ${file.name}`, key: file.name });
+          
+          await uploadFile(file, parentId);
+          message.success({ content: `${file.name} 上传成功`, key: file.name });
+        }
+        
+        // 刷新文件列表
+        fetchFileList(pagination.current, pagination.pageSize);
+      } catch (error) {
+        message.error('上传失败');
+      }
+    };
+    input.click();
   };
 
   const handleNewFolder = () => {
@@ -188,12 +213,61 @@ const CloudDrive: React.FC = () => {
     setIsNewFolderModalVisible(false);
   };
 
-  const handleBatchDownload = () => {
+  const handleSingleDownload = async (file: FileItem) => {
+    try {
+      const blob = await downloadFile(file.ID);
+      const url = window.URL.createObjectURL(new Blob([blob], { type: file.MIMEType }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.Name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      message.success('下载成功');
+    } catch (error) {
+      console.error('下载错误:', error);
+      message.error('下载失败');
+    }
+  };
+
+  const handleBatchDownload = async () => {
     if (selectedRows.length === 0) {
       message.warning('请选择要下载的文件');
       return;
     }
-    message.info('批量下载功能待实现');
+
+    try {
+      for (const file of selectedRows) {
+        if (!file.IsDir) {
+          await handleSingleDownload(file);
+        }
+      }
+    } catch (error) {
+      message.error('批量下载失败');
+    }
+  };
+
+  const handleToggleFavorite = (file: FileItem) => {
+    message.info(`收藏文件：${file.Name}`);
+  };
+
+  const handleSingleDelete = (file: FileItem) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除 ${file.Name} 吗？`,
+      okText: '确认',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deleteFile(file.ID);
+          message.success('删除成功');
+          fetchFileList(pagination.current, pagination.pageSize);
+        } catch (error) {
+          message.error('删除失败');
+        }
+      },
+    });
   };
 
   const handleBatchDelete = () => {
@@ -212,32 +286,6 @@ const CloudDrive: React.FC = () => {
           await Promise.all(deletePromises);
           message.success('删除成功');
           setSelectedRows([]);
-          fetchFileList(pagination.current, pagination.pageSize);
-        } catch (error) {
-          message.error('删除失败');
-        }
-      },
-    });
-  };
-
-  const handleSingleDownload = (file: FileItem) => {
-    message.info(`下载文件：${file.Name}`);
-  };
-
-  const handleToggleFavorite = (file: FileItem) => {
-    message.info(`收藏文件：${file.Name}`);
-  };
-
-  const handleSingleDelete = (file: FileItem) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除 ${file.Name} 吗？`,
-      okText: '确认',
-      cancelText: '取消',
-      onOk: async () => {
-        try {
-          await deleteFile(file.ID);
-          message.success('删除成功');
           fetchFileList(pagination.current, pagination.pageSize);
         } catch (error) {
           message.error('删除失败');
