@@ -335,12 +335,6 @@ const CloudDrive: React.FC = () => {
     setCurrentPath(currentPath.slice(0, index + 1));
   };
 
-  const rowSelection = {
-    onChange: (_: React.Key[], selectedRows: FileItem[]) => {
-      setSelectedRows(selectedRows);
-    },
-  };
-
   const handleMove = () => {
     if (selectedRows.length === 0) {
       message.warning('请选择要移动的文件');
@@ -391,78 +385,55 @@ const CloudDrive: React.FC = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
-      <div className="mb-4">
-        <Breadcrumb>
-          {currentPath.map((path, index) => (
-            <Breadcrumb.Item key={path.id || 'root'}>
-              {index === currentPath.length - 1 ? (
-                path.name
-              ) : (
-                <a onClick={() => handleBreadcrumbClick(index)}>{path.name}</a>
-              )}
-            </Breadcrumb.Item>
-          ))}
-        </Breadcrumb>
-      </div>
-
-      <div className="mb-4 flex justify-between">
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
         <Space>
-          <Button
-            type="primary"
-            icon={<UploadOutlined />}
-            onClick={handleUpload}
-          >
+          <Button type="primary" icon={<UploadOutlined />} onClick={handleUpload}>
             上传文件
           </Button>
-          <Button
-            icon={<FolderAddOutlined />}
-            onClick={handleNewFolder}
-          >
+          <Button icon={<FolderAddOutlined />} onClick={handleNewFolder}>
             新建文件夹
           </Button>
+          {selectedRows.length > 0 && (
+            <>
+              <Button icon={<DownloadOutlined />} onClick={handleBatchDownload}>
+                批量下载
+              </Button>
+              <Button icon={<RetweetOutlined />} onClick={handleMove}>
+                移动到
+              </Button>
+              <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
+                批量删除
+              </Button>
+            </>
+          )}
         </Space>
-
-        {selectedRows.length > 0 && (
-          <Space>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={handleBatchDownload}
-            >
-              下载
-            </Button>
-            <Button
-              icon={<RetweetOutlined />}
-              onClick={handleMove}
-            >
-              移动到
-            </Button>
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              onClick={handleBatchDelete}
-            >
-              删除
-            </Button>
-          </Space>
-        )}
       </div>
 
+      <Breadcrumb className="py-2">
+        {currentPath.map((item, index) => (
+          <Breadcrumb.Item key={item.id || 'root'}>
+            <a onClick={() => handleBreadcrumbClick(index)}>{item.name}</a>
+          </Breadcrumb.Item>
+        ))}
+      </Breadcrumb>
+
       <Table
-        rowSelection={rowSelection}
         columns={columns}
         dataSource={data}
-        rowKey="ID"
-        pagination={{
-          ...pagination,
-          showTotal: (total) => `共 ${total} 项`,
-        }}
         loading={loading}
+        pagination={pagination}
+        rowKey="ID"
         onChange={handleTableChange}
         onRow={(record) => ({
-          onDoubleClick: () => handleFolderClick(record),
+          onClick: () => record.IsDir && handleFolderClick(record),
         })}
+        rowSelection={{
+          selectedRowKeys: selectedRows.map((row) => row.ID),
+          onChange: (_, rows) => setSelectedRows(rows),
+        }}
       />
+
       <Modal
         title="新建文件夹"
         open={isNewFolderModalVisible}
@@ -473,9 +444,9 @@ const CloudDrive: React.FC = () => {
           placeholder="请输入文件夹名称"
           value={newFolderName}
           onChange={(e) => setNewFolderName(e.target.value)}
-          onPressEnter={handleNewFolderOk}
         />
       </Modal>
+
       <Modal
         title="移动到"
         open={isMoveModalVisible}
@@ -483,24 +454,18 @@ const CloudDrive: React.FC = () => {
         onCancel={handleMoveModalCancel}
         width={600}
       >
-        <div className="mb-4">
+        <div className="space-y-4">
           <Breadcrumb>
-            {moveTargetPath.map((path, index) => (
-              <Breadcrumb.Item key={path.id || 'root'}>
-                {index === moveTargetPath.length - 1 ? (
-                  path.name
-                ) : (
-                  <a onClick={() => handleMoveTargetBreadcrumbClick(index)}>{path.name}</a>
-                )}
+            {moveTargetPath.map((item, index) => (
+              <Breadcrumb.Item key={item.id || 'root'}>
+                <a onClick={() => handleMoveTargetBreadcrumbClick(index)}>{item.name}</a>
               </Breadcrumb.Item>
             ))}
           </Breadcrumb>
-        </div>
-        <div className="max-h-96 overflow-y-auto">
           <Table
             columns={[
               {
-                title: '文件夹名称',
+                title: '名称',
                 dataIndex: 'Name',
                 key: 'name',
                 render: (text: string) => (
@@ -512,12 +477,10 @@ const CloudDrive: React.FC = () => {
               },
             ]}
             dataSource={moveTargetData}
-            rowKey="ID"
             pagination={false}
-            loading={loading}
+            rowKey="ID"
             onRow={(record) => ({
               onClick: () => handleMoveTargetFolderClick(record),
-              style: { cursor: 'pointer' },
             })}
           />
         </div>
