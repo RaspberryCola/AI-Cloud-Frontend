@@ -139,6 +139,19 @@ interface UploadFileResponse {
   data: FileItem;
 }
 
+// 移动文件请求参数
+interface MoveFilesRequest {
+  files_pid: string[];
+  target_pid?: string;
+}
+
+// 移动文件响应类型
+interface MoveFilesResponse {
+  code: number;
+  msg: string;
+  data: null;
+}
+
 // API函数
 export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   return api.post('/users/login', data);
@@ -189,4 +202,8 @@ export const uploadFile = async (file: File, parentId?: string): Promise<UploadF
       'Content-Type': 'multipart/form-data',
     },
   });
+};
+
+export const moveFiles = async (data: MoveFilesRequest): Promise<MoveFilesResponse> => {
+  return api.post('/files/move', data);
 }; 

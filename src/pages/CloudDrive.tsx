@@ -9,9 +9,10 @@ import {
   FolderAddOutlined,
   StarOutlined,
   StarFilled,
+  RetweetOutlined,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import { getFileList, FileItem, createFolder, deleteFile, downloadFile, uploadFile } from '../services/api';
+import { getFileList, FileItem, createFolder, deleteFile, downloadFile, uploadFile, moveFiles } from '../services/api';
 import dayjs from 'dayjs';
 
 interface BreadcrumbItem {
@@ -31,6 +32,10 @@ const CloudDrive: React.FC = () => {
   });
   const [isNewFolderModalVisible, setIsNewFolderModalVisible] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>();
+  const [moveTargetPath, setMoveTargetPath] = useState<BreadcrumbItem[]>([{ id: null, name: '根目录' }]);
+  const [moveTargetData, setMoveTargetData] = useState<FileItem[]>([]);
 
   const fetchFileList = async (page = 1, pageSize = 10) => {
     try {
@@ -55,6 +60,28 @@ const CloudDrive: React.FC = () => {
       }
     } catch (error) {
       message.error('获取文件列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMoveTargetFileList = async (parentId?: string) => {
+    try {
+      setLoading(true);
+      const response = await getFileList({
+        parent_id: parentId,
+        page: 1,
+        page_size: 100,
+        sort: 'updated_at:desc',
+      });
+
+      if (response.code === 0) {
+        setMoveTargetData(response.data.list.filter(item => item.IsDir));
+      } else {
+        message.error(response.message || '获取文件夹列表失败');
+      }
+    } catch (error) {
+      message.error('获取文件夹列表失败');
     } finally {
       setLoading(false);
     }
@@ -314,6 +341,55 @@ const CloudDrive: React.FC = () => {
     },
   };
 
+  const handleMove = () => {
+    if (selectedRows.length === 0) {
+      message.warning('请选择要移动的文件');
+      return;
+    }
+    setSelectedFolderId(undefined);
+    setMoveTargetPath([{ id: null, name: '根目录' }]);
+    fetchMoveTargetFileList();
+    setIsMoveModalVisible(true);
+  };
+
+  const handleMoveModalOk = async () => {
+    try {
+      const response = await moveFiles({
+        files_pid: selectedRows.map(file => file.ID),
+        target_pid: selectedFolderId,
+      });
+
+      if (response.code === 200) {
+        message.success('移动成功');
+        setIsMoveModalVisible(false);
+        setSelectedRows([]);
+        fetchFileList(pagination.current, pagination.pageSize);
+      } else {
+        message.error(response.msg || '移动失败');
+      }
+    } catch (error) {
+      message.error('移动失败');
+    }
+  };
+
+  const handleMoveModalCancel = () => {
+    setIsMoveModalVisible(false);
+  };
+
+  const handleMoveTargetFolderClick = (record: FileItem) => {
+    setSelectedFolderId(record.ID);
+    setMoveTargetPath([...moveTargetPath, { id: record.ID, name: record.Name }]);
+    fetchMoveTargetFileList(record.ID);
+  };
+
+  const handleMoveTargetBreadcrumbClick = (index: number) => {
+    const newPath = moveTargetPath.slice(0, index + 1);
+    setMoveTargetPath(newPath);
+    const targetFolder = newPath[newPath.length - 1];
+    setSelectedFolderId(targetFolder.id || undefined);
+    fetchMoveTargetFileList(targetFolder.id || undefined);
+  };
+
   return (
     <div className="bg-white p-6 rounded-lg shadow">
       <div className="mb-4">
@@ -356,6 +432,12 @@ const CloudDrive: React.FC = () => {
               下载
             </Button>
             <Button
+              icon={<RetweetOutlined />}
+              onClick={handleMove}
+            >
+              移动到
+            </Button>
+            <Button
               danger
               icon={<DeleteOutlined />}
               onClick={handleBatchDelete}
@@ -393,6 +475,52 @@ const CloudDrive: React.FC = () => {
           onChange={(e) => setNewFolderName(e.target.value)}
           onPressEnter={handleNewFolderOk}
         />
+      </Modal>
+      <Modal
+        title="移动到"
+        open={isMoveModalVisible}
+        onOk={handleMoveModalOk}
+        onCancel={handleMoveModalCancel}
+        width={600}
+      >
+        <div className="mb-4">
+          <Breadcrumb>
+            {moveTargetPath.map((path, index) => (
+              <Breadcrumb.Item key={path.id || 'root'}>
+                {index === moveTargetPath.length - 1 ? (
+                  path.name
+                ) : (
+                  <a onClick={() => handleMoveTargetBreadcrumbClick(index)}>{path.name}</a>
+                )}
+              </Breadcrumb.Item>
+            ))}
+          </Breadcrumb>
+        </div>
+        <div className="max-h-96 overflow-y-auto">
+          <Table
+            columns={[
+              {
+                title: '文件夹名称',
+                dataIndex: 'Name',
+                key: 'name',
+                render: (text: string) => (
+                  <Space>
+                    <FolderOutlined className="text-blue-500" />
+                    <span>{text}</span>
+                  </Space>
+                ),
+              },
+            ]}
+            dataSource={moveTargetData}
+            rowKey="ID"
+            pagination={false}
+            loading={loading}
+            onRow={(record) => ({
+              onClick: () => handleMoveTargetFolderClick(record),
+              style: { cursor: 'pointer' },
+            })}
+          />
+        </div>
       </Modal>
     </div>
   );
