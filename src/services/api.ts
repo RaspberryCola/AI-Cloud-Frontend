@@ -109,6 +109,19 @@ interface FileListParams {
   sort?: string;
 }
 
+// 创建文件夹请求参数
+interface CreateFolderRequest {
+  name: string;
+  parent_id?: string;
+}
+
+// 创建文件夹响应类型
+interface CreateFolderResponse {
+  code: number;
+  message: string;
+  data: FileItem;
+}
+
 // API函数
 export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   return api.post('/users/login', data);
@@ -120,4 +133,17 @@ export const register = async (data: RegisterRequest): Promise<RegisterResponse>
 
 export const getFileList = async (params: FileListParams): Promise<FileListResponse> => {
   return api.get('/files/page', { params });
+};
+
+export const createFolder = async (data: CreateFolderRequest): Promise<CreateFolderResponse> => {
+  const formData = new FormData();
+  formData.append('name', data.name);
+  if (data.parent_id) {
+    formData.append('parent_id', data.parent_id);
+  }
+  return api.post('/files/folder', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }; 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Breadcrumb, Button, Space, message, Tooltip } from 'antd';
+import { Table, Breadcrumb, Button, Space, message, Tooltip, Modal, Input } from 'antd';
 import {
   FolderOutlined,
   FileOutlined,
@@ -11,7 +11,7 @@ import {
   StarFilled,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import { getFileList, FileItem } from '../services/api';
+import { getFileList, FileItem, createFolder } from '../services/api';
 import dayjs from 'dayjs';
 
 interface BreadcrumbItem {
@@ -29,6 +29,8 @@ const CloudDrive: React.FC = () => {
     pageSize: 10,
     total: 0,
   });
+  const [isNewFolderModalVisible, setIsNewFolderModalVisible] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   const fetchFileList = async (page = 1, pageSize = 10) => {
     try {
@@ -150,7 +152,40 @@ const CloudDrive: React.FC = () => {
   };
 
   const handleNewFolder = () => {
-    message.info('新建文件夹功能待实现');
+    setNewFolderName('');
+    setIsNewFolderModalVisible(true);
+  };
+
+  const handleNewFolderOk = async () => {
+    if (!newFolderName.trim()) {
+      message.warning('请输入文件夹名称');
+      return;
+    }
+
+    try {
+      const currentFolder = currentPath[currentPath.length - 1];
+      const response = await createFolder({
+        name: newFolderName.trim(),
+        parent_id: currentFolder.id || undefined,
+      });
+
+      console.log('创建文件夹响应:', response);
+
+      if (response.code === 0) {
+        message.success('创建文件夹成功');
+        setIsNewFolderModalVisible(false);
+        fetchFileList(pagination.current, pagination.pageSize);
+      } else {
+        message.error(response.message || '创建文件夹失败');
+      }
+    } catch (error) {
+      console.error('创建文件夹错误:', error);
+      message.error('创建文件夹失败');
+    }
+  };
+
+  const handleNewFolderCancel = () => {
+    setIsNewFolderModalVisible(false);
   };
 
   const handleBatchDownload = () => {
@@ -268,6 +303,19 @@ const CloudDrive: React.FC = () => {
           onDoubleClick: () => handleFolderClick(record),
         })}
       />
+      <Modal
+        title="新建文件夹"
+        open={isNewFolderModalVisible}
+        onOk={handleNewFolderOk}
+        onCancel={handleNewFolderCancel}
+      >
+        <Input
+          placeholder="请输入文件夹名称"
+          value={newFolderName}
+          onChange={(e) => setNewFolderName(e.target.value)}
+          onPressEnter={handleNewFolderOk}
+        />
+      </Modal>
     </div>
   );
 };
