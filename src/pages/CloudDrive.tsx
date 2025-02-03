@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, Breadcrumb, Button, Space, message } from 'antd';
 import {
   FolderOutlined,
@@ -8,59 +8,72 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
+import { getFileList, FileItem } from '../services/api';
+import dayjs from 'dayjs';
 
-interface FileItem {
-  key: string;
+interface BreadcrumbItem {
+  id: string | null;
   name: string;
-  type: 'file' | 'folder';
-  size: number;
-  lastModified: string;
 }
 
 const CloudDrive: React.FC = () => {
-  const [currentPath, setCurrentPath] = useState<string[]>(['根目录']);
+  const [currentPath, setCurrentPath] = useState<BreadcrumbItem[]>([{ id: null, name: '根目录' }]);
   const [selectedRows, setSelectedRows] = useState<FileItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<FileItem[]>([]);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
-  // 模拟文件数据
-  const data: FileItem[] = [
-    {
-      key: '1',
-      name: '我的文档',
-      type: 'folder',
-      size: 0,
-      lastModified: '2024-02-03 12:00:00',
-    },
-    {
-      key: '2',
-      name: '工作文件',
-      type: 'folder',
-      size: 0,
-      lastModified: '2024-02-03 13:00:00',
-    },
-    {
-      key: '3',
-      name: '报告.pdf',
-      type: 'file',
-      size: 1024576, // 1MB
-      lastModified: '2024-02-03 14:00:00',
-    },
-  ];
+  const fetchFileList = async (page = 1, pageSize = 10) => {
+    try {
+      setLoading(true);
+      const currentFolder = currentPath[currentPath.length - 1];
+      const response = await getFileList({
+        parent_id: currentFolder.id || undefined,
+        page,
+        page_size: pageSize,
+        sort: 'updated_at:desc',
+      });
+
+      if (response.code === 0) {
+        setData(response.data.list);
+        setPagination({
+          ...pagination,
+          current: page,
+          total: response.data.total,
+        });
+      } else {
+        message.error(response.message || '获取文件列表失败');
+      }
+    } catch (error) {
+      message.error('获取文件列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFileList();
+  }, [currentPath]);
 
   const columns = [
     {
       title: '名称',
-      dataIndex: 'name',
+      dataIndex: 'Name',
       key: 'name',
       render: (text: string, record: FileItem) => (
         <Space>
-          {record.type === 'folder' ? <FolderOutlined /> : <FileOutlined />}
+          {record.IsDir ? <FolderOutlined /> : <FileOutlined />}
           <span>{text}</span>
         </Space>
       ),
     },
     {
       title: '大小',
-      dataIndex: 'size',
+      dataIndex: 'Size',
       key: 'size',
       render: (size: number) => {
         if (size === 0) return '-';
@@ -76,8 +89,9 @@ const CloudDrive: React.FC = () => {
     },
     {
       title: '修改时间',
-      dataIndex: 'lastModified',
-      key: 'lastModified',
+      dataIndex: 'UpdatedAt',
+      key: 'updatedAt',
+      render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
     },
   ];
 
@@ -101,6 +115,20 @@ const CloudDrive: React.FC = () => {
     message.info('删除功能待实现');
   };
 
+  const handleTableChange = (pagination: any) => {
+    fetchFileList(pagination.current, pagination.pageSize);
+  };
+
+  const handleFolderClick = (record: FileItem) => {
+    if (record.IsDir) {
+      setCurrentPath([...currentPath, { id: record.ID, name: record.Name }]);
+    }
+  };
+
+  const handleBreadcrumbClick = (index: number) => {
+    setCurrentPath(currentPath.slice(0, index + 1));
+  };
+
   const rowSelection = {
     onChange: (_: React.Key[], selectedRows: FileItem[]) => {
       setSelectedRows(selectedRows);
@@ -112,11 +140,11 @@ const CloudDrive: React.FC = () => {
       <div className="mb-4">
         <Breadcrumb>
           {currentPath.map((path, index) => (
-            <Breadcrumb.Item key={index}>
+            <Breadcrumb.Item key={path.id || 'root'}>
               {index === currentPath.length - 1 ? (
-                path
+                path.name
               ) : (
-                <Link to="#">{path}</Link>
+                <a onClick={() => handleBreadcrumbClick(index)}>{path.name}</a>
               )}
             </Breadcrumb.Item>
           ))}
@@ -154,17 +182,15 @@ const CloudDrive: React.FC = () => {
         rowSelection={rowSelection}
         columns={columns}
         dataSource={data}
+        rowKey="ID"
         pagination={{
-          total: data.length,
-          pageSize: 10,
+          ...pagination,
           showTotal: (total) => `共 ${total} 项`,
         }}
+        loading={loading}
+        onChange={handleTableChange}
         onRow={(record) => ({
-          onDoubleClick: () => {
-            if (record.type === 'folder') {
-              setCurrentPath([...currentPath, record.name]);
-            }
-          },
+          onDoubleClick: () => handleFolderClick(record),
         })}
       />
     </div>

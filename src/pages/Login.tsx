@@ -3,7 +3,8 @@ import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { login } from '../store/authSlice';
+import { login as loginApi } from '../services/api';
+import { login as loginAction } from '../store/authSlice';
 
 interface LoginForm {
   username: string;
@@ -13,24 +14,38 @@ interface LoginForm {
 const Login: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [form] = Form.useForm();
 
   const onFinish = async (values: LoginForm) => {
     try {
-      // 这里应该调用后端API进行登录验证
-      // 模拟API调用
-      const response = {
-        user: {
-          username: values.username,
-          email: `${values.username}@example.com`,
-        },
-        token: 'mock-jwt-token',
-      };
+      const response = await loginApi(values);
+      
+      if (response.code === 200) {
+        // 保存token到localStorage
+        localStorage.setItem('token', response.data.access_token);
+        
+        // 更新Redux状态
+        dispatch(loginAction({
+          user: {
+            username: values.username,
+            email: '', // 登录接口没有返回email，如果需要可以添加额外的用户信息接口获取
+          },
+          token: response.data.access_token,
+        }));
 
-      dispatch(login(response));
-      message.success('登录成功！');
-      navigate('/cloud-drive');
-    } catch (error) {
-      message.error('登录失败，请检查用户名和密码！');
+        message.success(response.message);
+        navigate('/cloud-drive');
+      } else {
+        message.error(response.message || '登录失败');
+      }
+    } catch (error: any) {
+      message.error(error.response?.data?.message || '登录失败，请检查用户名和密码！');
+      form.setFields([
+        {
+          name: 'password',
+          errors: ['用户名或密码错误'],
+        },
+      ]);
     }
   };
 
@@ -43,6 +58,7 @@ const Login: React.FC = () => {
         </div>
         
         <Form
+          form={form}
           name="login"
           onFinish={onFinish}
           autoComplete="off"

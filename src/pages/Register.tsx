@@ -1,38 +1,47 @@
 import React from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { login } from '../store/authSlice';
+import { register as registerApi } from '../services/api';
+import { login as loginAction } from '../store/authSlice';
 
 interface RegisterForm {
   username: string;
-  email: string;
   password: string;
   confirmPassword: string;
+  email: string;
+  phone: string;
 }
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [form] = Form.useForm();
 
   const onFinish = async (values: RegisterForm) => {
     try {
-      // 这里应该调用后端API进行注册
-      // 模拟API调用
-      const response = {
-        user: {
-          username: values.username,
-          email: values.email,
-        },
-        token: 'mock-jwt-token',
-      };
+      const { confirmPassword, ...registerData } = values;
+      const response = await registerApi(registerData);
 
-      dispatch(login(response));
-      message.success('注册成功！');
-      navigate('/cloud-drive');
-    } catch (error) {
-      message.error('注册失败，请稍后重试！');
+      if (response.code === 201) {
+        message.success(response.message);
+        // 注册成功后自动登录
+        // 这里可以根据实际需求决定是否自动登录，或者跳转到登录页面
+        navigate('/login');
+      } else {
+        message.error(response.message || '注册失败');
+      }
+    } catch (error: any) {
+      message.error(error.response?.data?.message || '注册失败，请稍后重试！');
+      if (error.response?.data?.field) {
+        form.setFields([
+          {
+            name: error.response.data.field,
+            errors: [error.response.data.message],
+          },
+        ]);
+      }
     }
   };
 
@@ -45,6 +54,7 @@ const Register: React.FC = () => {
         </div>
 
         <Form
+          form={form}
           name="register"
           onFinish={onFinish}
           autoComplete="off"
@@ -74,6 +84,20 @@ const Register: React.FC = () => {
             <Input
               prefix={<MailOutlined />}
               placeholder="邮箱"
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="phone"
+            rules={[
+              { required: true, message: '请输入手机号！' },
+              { pattern: /^\+?[1-9]\d{1,14}$/, message: '请输入有效的手机号！' },
+            ]}
+          >
+            <Input
+              prefix={<PhoneOutlined />}
+              placeholder="手机号（格式：+8613355734398）"
               size="large"
             />
           </Form.Item>
