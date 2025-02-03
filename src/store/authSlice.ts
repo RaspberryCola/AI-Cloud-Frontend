@@ -9,11 +9,28 @@ interface AuthState {
   token: string | null;
 }
 
-const initialState: AuthState = {
-  isAuthenticated: false,
-  user: null,
-  token: null,
+// 从 localStorage 读取初始状态
+const loadState = (): AuthState => {
+  try {
+    const serializedAuth = localStorage.getItem('auth');
+    if (serializedAuth === null) {
+      return {
+        isAuthenticated: false,
+        user: null,
+        token: null,
+      };
+    }
+    return JSON.parse(serializedAuth);
+  } catch (err) {
+    return {
+      isAuthenticated: false,
+      user: null,
+      token: null,
+    };
+  }
 };
+
+const initialState: AuthState = loadState();
 
 const authSlice = createSlice({
   name: 'auth',
@@ -23,11 +40,15 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.user = action.payload.user;
       state.token = action.payload.token;
+      // 保存到 localStorage
+      localStorage.setItem('auth', JSON.stringify(state));
     },
     logout: (state) => {
       state.isAuthenticated = false;
       state.user = null;
       state.token = null;
+      // 清除 localStorage
+      localStorage.removeItem('auth');
     },
   },
 });

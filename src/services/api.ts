@@ -11,9 +11,12 @@ const api = axios.create({
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const authData = localStorage.getItem('auth');
+    if (authData) {
+      const { token } = JSON.parse(authData);
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -37,8 +40,8 @@ api.interceptors.response.use(
       const { status, data } = error.response;
       switch (status) {
         case 401:
-          // 未授权，清除token并跳转到登录页
-          localStorage.removeItem('token');
+          // 未授权，清除认证信息并跳转到登录页
+          localStorage.removeItem('auth');
           window.location.href = '/login';
           break;
         default:

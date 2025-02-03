@@ -27,7 +27,7 @@ const MainLayout: React.FC = () => {
     }
   };
 
-  const menuItems = [
+  const mainMenuItems = [
     {
       key: '/cloud-drive',
       icon: <CloudOutlined />,
@@ -43,6 +43,9 @@ const MainLayout: React.FC = () => {
       icon: <ReadOutlined />,
       label: 'AI阅读',
     },
+  ];
+
+  const userMenuItems = [
     {
       key: 'user',
       icon: <UserOutlined />,
@@ -61,13 +64,22 @@ const MainLayout: React.FC = () => {
     <Layout className="min-h-screen">
       <Header className="px-0 bg-white">
         <div className="flex items-center justify-between px-6">
-          <div className="text-xl font-bold">AI云盘系统</div>
+          <div className="flex items-center">
+            <div className="text-xl font-bold mr-8">AI云盘系统</div>
+            <Menu
+              mode="horizontal"
+              selectedKeys={[location.pathname]}
+              items={mainMenuItems}
+              onClick={({ key }) => handleMenuClick(key)}
+              className="border-0"
+            />
+          </div>
           <Menu
             mode="horizontal"
             selectedKeys={[location.pathname]}
-            items={menuItems}
+            items={userMenuItems}
             onClick={({ key }) => handleMenuClick(key)}
-            className="flex-1 justify-end border-0"
+            className="border-0"
           />
         </div>
       </Header>
