@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Breadcrumb, Button, Space, message } from 'antd';
+import { Table, Breadcrumb, Button, Space, message, Tooltip } from 'antd';
 import {
   FolderOutlined,
   FileOutlined,
   UploadOutlined,
   DownloadOutlined,
   DeleteOutlined,
+  FolderAddOutlined,
+  StarOutlined,
+  StarFilled,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { getFileList, FileItem } from '../services/api';
@@ -66,7 +69,7 @@ const CloudDrive: React.FC = () => {
       key: 'name',
       render: (text: string, record: FileItem) => (
         <Space>
-          {record.IsDir ? <FolderOutlined /> : <FileOutlined />}
+          {record.IsDir ? <FolderOutlined className="text-blue-500" /> : <FileOutlined className="text-gray-500" />}
           <span>{text}</span>
         </Space>
       ),
@@ -75,6 +78,7 @@ const CloudDrive: React.FC = () => {
       title: '大小',
       dataIndex: 'Size',
       key: 'size',
+      width: 120,
       render: (size: number) => {
         if (size === 0) return '-';
         const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -91,7 +95,53 @@ const CloudDrive: React.FC = () => {
       title: '修改时间',
       dataIndex: 'UpdatedAt',
       key: 'updatedAt',
+      width: 180,
       render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 120,
+      render: (_: unknown, record: FileItem) => (
+        <Space size="middle">
+          {!record.IsDir && (
+            <Tooltip title="下载">
+              <Button
+                type="text"
+                icon={<DownloadOutlined />}
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSingleDownload(record);
+                }}
+              />
+            </Tooltip>
+          )}
+          <Tooltip title="收藏">
+            <Button
+              type="text"
+              icon={<StarOutlined />}
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleFavorite(record);
+              }}
+            />
+          </Tooltip>
+          <Tooltip title="删除">
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSingleDelete(record);
+              }}
+            />
+          </Tooltip>
+        </Space>
+      ),
     },
   ];
 
@@ -99,20 +149,36 @@ const CloudDrive: React.FC = () => {
     message.info('上传功能待实现');
   };
 
-  const handleDownload = () => {
+  const handleNewFolder = () => {
+    message.info('新建文件夹功能待实现');
+  };
+
+  const handleBatchDownload = () => {
     if (selectedRows.length === 0) {
       message.warning('请选择要下载的文件');
       return;
     }
-    message.info('下载功能待实现');
+    message.info('批量下载功能待实现');
   };
 
-  const handleDelete = () => {
+  const handleBatchDelete = () => {
     if (selectedRows.length === 0) {
       message.warning('请选择要删除的文件');
       return;
     }
-    message.info('删除功能待实现');
+    message.info('批量删除功能待实现');
+  };
+
+  const handleSingleDownload = (file: FileItem) => {
+    message.info(`下载文件：${file.Name}`);
+  };
+
+  const handleToggleFavorite = (file: FileItem) => {
+    message.info(`收藏文件：${file.Name}`);
+  };
+
+  const handleSingleDelete = (file: FileItem) => {
+    message.info(`删除文件：${file.Name}`);
   };
 
   const handleTableChange = (pagination: any) => {
@@ -151,31 +217,40 @@ const CloudDrive: React.FC = () => {
         </Breadcrumb>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex justify-between">
         <Space>
           <Button
             type="primary"
             icon={<UploadOutlined />}
             onClick={handleUpload}
           >
-            上传
+            上传文件
           </Button>
           <Button
-            icon={<DownloadOutlined />}
-            onClick={handleDownload}
-            disabled={selectedRows.length === 0}
+            icon={<FolderAddOutlined />}
+            onClick={handleNewFolder}
           >
-            下载
-          </Button>
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={handleDelete}
-            disabled={selectedRows.length === 0}
-          >
-            删除
+            新建文件夹
           </Button>
         </Space>
+
+        {selectedRows.length > 0 && (
+          <Space>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={handleBatchDownload}
+            >
+              下载
+            </Button>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={handleBatchDelete}
+            >
+              删除
+            </Button>
+          </Space>
+        )}
       </div>
 
       <Table
