@@ -53,7 +53,7 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-96 shadow-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">AI云盘系统</h1>
+          <h1 className="text-2xl font-bold">小鱼快传2.0</h1>
           <p className="text-gray-600">欢迎回来</p>
         </div>
         
