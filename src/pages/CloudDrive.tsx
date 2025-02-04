@@ -1,87 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Breadcrumb, Button, Space, message, Tooltip, Modal, Input } from 'antd';
+import { Table, Breadcrumb, Button, Space, message, Modal, Input } from 'antd';
 import {
-  FolderOutlined,
-  FileOutlined,
   UploadOutlined,
-  DownloadOutlined,
-  DeleteOutlined,
   FolderAddOutlined,
-  StarOutlined,
-  StarFilled,
-  RetweetOutlined,
-  FileWordOutlined,
-  FileExcelOutlined,
-  FilePdfOutlined,
-  FileImageOutlined,
-  FileZipOutlined,
-  FileMarkdownOutlined,
-  FileTextOutlined,
-  PlayCircleOutlined,
-  CodeOutlined,
   ReloadOutlined,
-  CaretUpOutlined,
-  CaretDownOutlined,
-  SwapOutlined,
+  DownloadOutlined,
+  RetweetOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
-import { getFileList, FileItem, createFolder, deleteFile, downloadFile, uploadFile, moveFiles } from '../services/api';
-import dayjs from 'dayjs';
-import type { SortOrder } from 'antd/es/table/interface';
-
-interface BreadcrumbItem {
-  id: string | null;
-  name: string;
-}
-
-const getFileIcon = (fileName: string, isDir: boolean) => {
-  if (isDir) return <FolderOutlined className="text-blue-500" />;
-  
-  const extension = fileName.split('.').pop()?.toLowerCase() || '';
-  
-  switch (extension) {
-    case 'doc':
-    case 'docx':
-      return <FileWordOutlined className="text-blue-600" />;
-    case 'xls':
-    case 'xlsx':
-      return <FileExcelOutlined className="text-green-600" />;
-    case 'pdf':
-      return <FilePdfOutlined className="text-red-600" />;
-    case 'jpg':
-    case 'jpeg':
-    case 'png':
-    case 'gif':
-    case 'bmp':
-    case 'webp':
-      return <FileImageOutlined className="text-purple-600" />;
-    case 'zip':
-    case 'rar':
-    case '7z':
-      return <FileZipOutlined className="text-orange-600" />;
-    case 'md':
-      return <FileMarkdownOutlined className="text-cyan-600" />;
-    case 'txt':
-      return <FileTextOutlined className="text-gray-600" />;
-    case 'mp4':
-    case 'avi':
-    case 'mov':
-    case 'wmv':
-      return <PlayCircleOutlined className="text-pink-600" />;
-    case 'js':
-    case 'jsx':
-    case 'ts':
-    case 'tsx':
-    case 'html':
-    case 'css':
-    case 'py':
-    case 'java':
-    case 'cpp':
-      return <CodeOutlined className="text-yellow-600" />;
-    default:
-      return <FileOutlined className="text-gray-500" />;
-  }
-};
+import { getFileList, createFolder, deleteFile, downloadFile, moveFiles, uploadFile } from '../services/api';
+import type { FileItem, BreadcrumbItem, PaginationState } from '../types/cloudDrive';
+import { getColumns } from '../components/CloudDrive/columns';
+import { downloadBlob } from '../utils/fileUtils';
+import MoveFilesModal from '../components/CloudDrive/MoveFilesModal';
 
 const CloudDrive: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<BreadcrumbItem[]>([{ id: null, name: '根目录' }]);
@@ -90,7 +21,7 @@ const CloudDrive: React.FC = () => {
   const [data, setData] = useState<FileItem[]>([]);
   const [sortField, setSortField] = useState<'name' | 'updated_at'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState<PaginationState>({
     current: 1,
     pageSize: 10,
     total: 0,
@@ -156,147 +87,6 @@ const CloudDrive: React.FC = () => {
     fetchFileList();
   }, [currentPath, sortField, sortOrder]);
 
-  const columns = [
-    {
-      title: (
-        <Space size={4}>
-          <span>名称</span>
-          <Button
-            type="text"
-            size="small"
-            className="px-0 mx-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (sortField !== 'name') {
-                setSortField('name');
-                setSortOrder('asc');
-              } else {
-                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-              }
-            }}
-            icon={
-              sortField === 'name' ? (
-                sortOrder === 'asc' ? (
-                  <CaretUpOutlined className="text-blue-500" />
-                ) : (
-                  <CaretDownOutlined className="text-blue-500" />
-                )
-              ) : (
-                <SwapOutlined className="text-gray-400" />
-              )
-            }
-          />
-        </Space>
-      ),
-      dataIndex: 'Name',
-      key: 'name',
-      render: (text: string, record: FileItem) => (
-        <Space>
-          {getFileIcon(text, record.IsDir)}
-          <span>{text}</span>
-        </Space>
-      ),
-    },
-    {
-      title: '大小',
-      dataIndex: 'Size',
-      key: 'size',
-      width: 120,
-      render: (size: number) => {
-        if (size === 0) return '-';
-        const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        let index = 0;
-        let convertedSize = size;
-        while (convertedSize >= 1024 && index < units.length - 1) {
-          convertedSize /= 1024;
-          index++;
-        }
-        return `${convertedSize.toFixed(2)} ${units[index]}`;
-      },
-    },
-    {
-      title: (
-        <Space size={4}>
-          <span>修改时间</span>
-          <Button
-            type="text"
-            size="small"
-            className="px-0 mx-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (sortField !== 'updated_at') {
-                setSortField('updated_at');
-                setSortOrder('asc');
-              } else {
-                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-              }
-            }}
-            icon={
-              sortField === 'updated_at' ? (
-                sortOrder === 'asc' ? (
-                  <CaretUpOutlined className="text-blue-500" />
-                ) : (
-                  <CaretDownOutlined className="text-blue-500" />
-                )
-              ) : (
-                <SwapOutlined className="text-gray-400" />
-              )
-            }
-          />
-        </Space>
-      ),
-      dataIndex: 'UpdatedAt',
-      key: 'updatedAt',
-      width: 180,
-      render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
-    },
-    {
-      title: '操作',
-      key: 'action',
-      width: 120,
-      render: (_: unknown, record: FileItem) => (
-        <Space size="middle">
-          {!record.IsDir && (
-            <Tooltip title="下载">
-              <Button
-                type="text"
-                icon={<DownloadOutlined />}
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSingleDownload(record);
-                }}
-              />
-            </Tooltip>
-          )}
-          <Tooltip title="收藏">
-            <Button
-              type="text"
-              icon={<StarOutlined />}
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleFavorite(record);
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="删除">
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSingleDelete(record);
-              }}
-            />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
-
   const handleUpload = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -320,8 +110,6 @@ const CloudDrive: React.FC = () => {
             message.error({ content: `${file.name} ${response.message || '上传失败'}`, key: file.name });
           }
         }
-        
-        // 刷新文件列表
         fetchFileList(pagination.current, pagination.pageSize);
       } catch (error) {
         message.error('上传失败');
@@ -356,29 +144,16 @@ const CloudDrive: React.FC = () => {
         message.error(response.message || '创建文件夹失败');
       }
     } catch (error) {
-      console.error('创建文件夹错误:', error);
       message.error('创建文件夹失败');
     }
-  };
-
-  const handleNewFolderCancel = () => {
-    setIsNewFolderModalVisible(false);
   };
 
   const handleSingleDownload = async (file: FileItem) => {
     try {
       const blob = await downloadFile(file.ID);
-      const url = window.URL.createObjectURL(new Blob([blob], { type: file.MIMEType }));
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = file.Name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      downloadBlob(blob, file.Name, file.MIMEType);
       message.success('下载成功');
     } catch (error) {
-      console.error('下载错误:', error);
       message.error('下载失败');
     }
   };
@@ -398,10 +173,6 @@ const CloudDrive: React.FC = () => {
     } catch (error) {
       message.error('批量下载失败');
     }
-  };
-
-  const handleToggleFavorite = (file: FileItem) => {
-    message.info(`收藏文件：${file.Name}`);
   };
 
   const handleSingleDelete = (file: FileItem) => {
@@ -438,36 +209,15 @@ const CloudDrive: React.FC = () => {
       cancelText: '取消',
       onOk: async () => {
         try {
-          const deletePromises = selectedRows.map(async file => {
-            const response = await deleteFile(file.ID);
-            if (response.code !== 0) {
-              throw new Error(response.message || '删除失败');
-            }
-          });
-          
-          await Promise.all(deletePromises);
+          await Promise.all(selectedRows.map(file => deleteFile(file.ID)));
           message.success('删除成功');
           setSelectedRows([]);
           fetchFileList(pagination.current, pagination.pageSize);
         } catch (error) {
-          message.error(error instanceof Error ? error.message : '删除失败');
+          message.error('删除失败');
         }
       },
     });
-  };
-
-  const handleTableChange = (pagination: any) => {
-    fetchFileList(pagination.current, pagination.pageSize);
-  };
-
-  const handleFolderClick = (record: FileItem) => {
-    if (record.IsDir) {
-      setCurrentPath([...currentPath, { id: record.ID, name: record.Name }]);
-    }
-  };
-
-  const handleBreadcrumbClick = (index: number) => {
-    setCurrentPath(currentPath.slice(0, index + 1));
   };
 
   const handleMove = () => {
@@ -501,10 +251,6 @@ const CloudDrive: React.FC = () => {
     }
   };
 
-  const handleMoveModalCancel = () => {
-    setIsMoveModalVisible(false);
-  };
-
   const handleMoveTargetFolderClick = (record: FileItem) => {
     setSelectedFolderId(record.ID);
     setMoveTargetPath([...moveTargetPath, { id: record.ID, name: record.Name }]);
@@ -518,6 +264,33 @@ const CloudDrive: React.FC = () => {
     setSelectedFolderId(targetFolder.id || undefined);
     fetchMoveTargetFileList(targetFolder.id || undefined);
   };
+
+  const handleSortChange = (field: 'name' | 'updated_at') => {
+    if (sortField !== field) {
+      setSortField(field);
+      setSortOrder('asc');
+    } else {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    }
+  };
+
+  const handleTableChange = (newPagination: any) => {
+    fetchFileList(newPagination.current, newPagination.pageSize);
+  };
+
+  const columns = getColumns({
+    sortField,
+    sortOrder,
+    onSortChange: handleSortChange,
+    onFolderClick: (record) => {
+      if (record.IsDir) {
+        setCurrentPath([...currentPath, { id: record.ID, name: record.Name }]);
+      }
+    },
+    onDownload: handleSingleDownload,
+    onToggleFavorite: (record) => message.info(`收藏文件：${record.Name}`),
+    onDelete: handleSingleDelete,
+  });
 
   return (
     <div className="space-y-4">
@@ -551,7 +324,7 @@ const CloudDrive: React.FC = () => {
       <Breadcrumb className="py-2">
         {currentPath.map((item, index) => (
           <Breadcrumb.Item key={item.id || 'root'}>
-            <a onClick={() => handleBreadcrumbClick(index)}>{item.name}</a>
+            <a onClick={() => setCurrentPath(currentPath.slice(0, index + 1))}>{item.name}</a>
           </Breadcrumb.Item>
         ))}
       </Breadcrumb>
@@ -564,7 +337,12 @@ const CloudDrive: React.FC = () => {
         rowKey="ID"
         onChange={handleTableChange}
         onRow={(record) => ({
-          onClick: () => record.IsDir && handleFolderClick(record),
+          onClick: () => {
+            const newSelectedRows = selectedRows.find(row => row.ID === record.ID)
+              ? selectedRows.filter(row => row.ID !== record.ID)
+              : [...selectedRows, record];
+            setSelectedRows(newSelectedRows);
+          },
         })}
         rowSelection={{
           selectedRowKeys: selectedRows.map((row) => row.ID),
@@ -576,7 +354,7 @@ const CloudDrive: React.FC = () => {
         title="新建文件夹"
         open={isNewFolderModalVisible}
         onOk={handleNewFolderOk}
-        onCancel={handleNewFolderCancel}
+        onCancel={() => setIsNewFolderModalVisible(false)}
       >
         <Input
           placeholder="请输入文件夹名称"
@@ -585,44 +363,15 @@ const CloudDrive: React.FC = () => {
         />
       </Modal>
 
-      <Modal
-        title="移动到"
-        open={isMoveModalVisible}
+      <MoveFilesModal
+        visible={isMoveModalVisible}
         onOk={handleMoveModalOk}
-        onCancel={handleMoveModalCancel}
-        width={600}
-      >
-        <div className="space-y-4">
-          <Breadcrumb>
-            {moveTargetPath.map((item, index) => (
-              <Breadcrumb.Item key={item.id || 'root'}>
-                <a onClick={() => handleMoveTargetBreadcrumbClick(index)}>{item.name}</a>
-              </Breadcrumb.Item>
-            ))}
-          </Breadcrumb>
-          <Table
-            columns={[
-              {
-                title: '名称',
-                dataIndex: 'Name',
-                key: 'name',
-                render: (text: string) => (
-                  <Space>
-                    <FolderOutlined className="text-blue-500" />
-                    <span>{text}</span>
-                  </Space>
-                ),
-              },
-            ]}
-            dataSource={moveTargetData}
-            pagination={false}
-            rowKey="ID"
-            onRow={(record) => ({
-              onClick: () => handleMoveTargetFolderClick(record),
-            })}
-          />
-        </div>
-      </Modal>
+        onCancel={() => setIsMoveModalVisible(false)}
+        moveTargetPath={moveTargetPath}
+        moveTargetData={moveTargetData}
+        onBreadcrumbClick={handleMoveTargetBreadcrumbClick}
+        onFolderClick={handleMoveTargetFolderClick}
+      />
     </div>
   );
 };
