@@ -12,7 +12,7 @@ export const FileBreadcrumb: React.FC<FileBreadcrumbProps> = ({
   onBreadcrumbClick,
   onClearSearch,
 }) => {
-  const { currentPath, isSearchMode } = useSelector((state: RootState) => state.cloudDrive);
+  const { currentPath, isSearchMode, searchKey } = useSelector((state: RootState) => state.cloudDrive);
 
   return (
     <div className="mb-4">
@@ -28,7 +28,9 @@ export const FileBreadcrumb: React.FC<FileBreadcrumbProps> = ({
             <Breadcrumb.Item>
               <a onClick={onClearSearch}>根目录</a>
             </Breadcrumb.Item>
-            <Breadcrumb.Item>搜索结果</Breadcrumb.Item>
+            <Breadcrumb.Item>
+              搜索"{searchKey}"的结果
+            </Breadcrumb.Item>
           </>
         )}
       </Breadcrumb>

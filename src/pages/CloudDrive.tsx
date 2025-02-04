@@ -24,6 +24,7 @@ const CloudDrive: React.FC = () => {
     sortOrder,
     isLoadingPath,
     currentPath,
+    isSearchMode,
   } = useSelector((state: RootState) => state.cloudDrive);
 
   const {
@@ -150,6 +151,9 @@ const CloudDrive: React.FC = () => {
       const fullPath = await getFilePath(record.ID);
       const encodedPath = encodeURIComponent(JSON.stringify(fullPath));
       navigate(`?path=${encodedPath}`);
+      if (isSearchMode) {
+        handleClearSearch();
+      }
     }
   };
 
