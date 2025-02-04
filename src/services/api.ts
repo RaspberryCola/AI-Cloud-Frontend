@@ -84,6 +84,19 @@ interface RegisterResponse {
   message: string;
 }
 
+// 通用响应类型
+interface ApiResponse<T> {
+  code: number;
+  message: string;
+  data: T;
+}
+
+// 分页数据类型
+interface PageData<T> {
+  total: number;
+  list: T[];
+}
+
 // 文件列表接口类型
 export interface FileItem {
   ID: string;
@@ -100,15 +113,6 @@ export interface FileItem {
   UpdatedAt: string;
 }
 
-interface FileListResponse {
-  code: number;
-  message: string;
-  data: {
-    total: number;
-    list: FileItem[];
-  };
-}
-
 interface FileListParams {
   parent_id?: string;
   page: number;
@@ -122,37 +126,10 @@ interface CreateFolderRequest {
   parent_id?: string;
 }
 
-// 创建文件夹响应类型
-interface CreateFolderResponse {
-  code: number;
-  message: string;
-  data: FileItem;
-}
-
-// 删除文件响应类型
-interface DeleteFileResponse {
-  code: number;
-  message: string;
-}
-
-// 上传文件响应类型
-interface UploadFileResponse {
-  code: number;
-  message: string;
-  data: FileItem;
-}
-
 // 移动文件请求参数
 interface MoveFilesRequest {
   files_pid: string[];
   target_pid?: string;
-}
-
-// 移动文件响应类型
-interface MoveFilesResponse {
-  code: number;
-  msg: string;
-  data: null;
 }
 
 // API函数
@@ -164,24 +141,15 @@ export const register = async (data: RegisterRequest): Promise<RegisterResponse>
   return api.post('/users/register', data);
 };
 
-export const getFileList = async (params: FileListParams): Promise<FileListResponse> => {
+export const getFileList = async (params: FileListParams): Promise<ApiResponse<PageData<FileItem>>> => {
   return api.get('/files/page', { params });
 };
 
-export const createFolder = async (data: CreateFolderRequest): Promise<CreateFolderResponse> => {
-  const formData = new FormData();
-  formData.append('name', data.name);
-  if (data.parent_id) {
-    formData.append('parent_id', data.parent_id);
-  }
-  return api.post('/files/folder', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+export const createFolder = async (data: CreateFolderRequest): Promise<ApiResponse<FileItem>> => {
+  return api.post('/files/folder', data);
 };
 
-export const deleteFile = async (fileId: string): Promise<DeleteFileResponse> => {
+export const deleteFile = async (fileId: string): Promise<ApiResponse<null>> => {
   return api.delete(`/files/delete`, { params: { file_id: fileId } });
 };
 
@@ -194,7 +162,7 @@ export const downloadFile = async (fileId: string): Promise<Blob> => {
   return response.data;
 };
 
-export const uploadFile = async (file: File, parentId?: string): Promise<UploadFileResponse> => {
+export const uploadFile = async (file: File, parentId?: string): Promise<ApiResponse<FileItem>> => {
   const formData = new FormData();
   formData.append('file', file);
   if (parentId) {
@@ -207,6 +175,6 @@ export const uploadFile = async (file: File, parentId?: string): Promise<UploadF
   });
 };
 
-export const moveFiles = async (data: MoveFilesRequest): Promise<MoveFilesResponse> => {
+export const moveFiles = async (data: MoveFilesRequest): Promise<ApiResponse<null>> => {
   return api.post('/files/move', data);
 }; 

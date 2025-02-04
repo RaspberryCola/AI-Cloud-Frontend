@@ -19,10 +19,15 @@ import {
   FileTextOutlined,
   PlayCircleOutlined,
   CodeOutlined,
+  ReloadOutlined,
+  CaretUpOutlined,
+  CaretDownOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { getFileList, FileItem, createFolder, deleteFile, downloadFile, uploadFile, moveFiles } from '../services/api';
 import dayjs from 'dayjs';
+import type { SortOrder } from 'antd/es/table/interface';
 
 interface BreadcrumbItem {
   id: string | null;
@@ -83,6 +88,8 @@ const CloudDrive: React.FC = () => {
   const [selectedRows, setSelectedRows] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<FileItem[]>([]);
+  const [sortField, setSortField] = useState<'name' | 'updated_at'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -103,7 +110,7 @@ const CloudDrive: React.FC = () => {
         parent_id: currentFolder.id || undefined,
         page,
         page_size: pageSize,
-        sort: 'updated_at:desc',
+        sort: `${sortField === 'name' ? 'name' : 'updated_at'}:${sortOrder}`,
       });
 
       if (response.code === 0) {
@@ -147,11 +154,40 @@ const CloudDrive: React.FC = () => {
 
   useEffect(() => {
     fetchFileList();
-  }, [currentPath]);
+  }, [currentPath, sortField, sortOrder]);
 
   const columns = [
     {
-      title: '名称',
+      title: (
+        <Space size={4}>
+          <span>名称</span>
+          <Button
+            type="text"
+            size="small"
+            className="px-0 mx-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (sortField !== 'name') {
+                setSortField('name');
+                setSortOrder('asc');
+              } else {
+                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+              }
+            }}
+            icon={
+              sortField === 'name' ? (
+                sortOrder === 'asc' ? (
+                  <CaretUpOutlined className="text-blue-500" />
+                ) : (
+                  <CaretDownOutlined className="text-blue-500" />
+                )
+              ) : (
+                <SwapOutlined className="text-gray-400" />
+              )
+            }
+          />
+        </Space>
+      ),
       dataIndex: 'Name',
       key: 'name',
       render: (text: string, record: FileItem) => (
@@ -179,7 +215,36 @@ const CloudDrive: React.FC = () => {
       },
     },
     {
-      title: '修改时间',
+      title: (
+        <Space size={4}>
+          <span>修改时间</span>
+          <Button
+            type="text"
+            size="small"
+            className="px-0 mx-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (sortField !== 'updated_at') {
+                setSortField('updated_at');
+                setSortOrder('asc');
+              } else {
+                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+              }
+            }}
+            icon={
+              sortField === 'updated_at' ? (
+                sortOrder === 'asc' ? (
+                  <CaretUpOutlined className="text-blue-500" />
+                ) : (
+                  <CaretDownOutlined className="text-blue-500" />
+                )
+              ) : (
+                <SwapOutlined className="text-gray-400" />
+              )
+            }
+          />
+        </Space>
+      ),
       dataIndex: 'UpdatedAt',
       key: 'updatedAt',
       width: 180,
@@ -248,8 +313,12 @@ const CloudDrive: React.FC = () => {
           const file = files[i];
           message.loading({ content: `正在上传: ${file.name}`, key: file.name });
           
-          await uploadFile(file, parentId);
-          message.success({ content: `${file.name} 上传成功`, key: file.name });
+          const response = await uploadFile(file, parentId);
+          if (response.code === 0) {
+            message.success({ content: `${file.name} 上传成功`, key: file.name });
+          } else {
+            message.error({ content: `${file.name} ${response.message || '上传失败'}`, key: file.name });
+          }
         }
         
         // 刷新文件列表
@@ -278,8 +347,6 @@ const CloudDrive: React.FC = () => {
         name: newFolderName.trim(),
         parent_id: currentFolder.id || undefined,
       });
-
-      console.log('创建文件夹响应:', response);
 
       if (response.code === 0) {
         message.success('创建文件夹成功');
@@ -345,9 +412,13 @@ const CloudDrive: React.FC = () => {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteFile(file.ID);
-          message.success('删除成功');
-          fetchFileList(pagination.current, pagination.pageSize);
+          const response = await deleteFile(file.ID);
+          if (response.code === 0) {
+            message.success('删除成功');
+            fetchFileList(pagination.current, pagination.pageSize);
+          } else {
+            message.error(response.message || '删除失败');
+          }
         } catch (error) {
           message.error('删除失败');
         }
@@ -367,13 +438,19 @@ const CloudDrive: React.FC = () => {
       cancelText: '取消',
       onOk: async () => {
         try {
-          const deletePromises = selectedRows.map(file => deleteFile(file.ID));
+          const deletePromises = selectedRows.map(async file => {
+            const response = await deleteFile(file.ID);
+            if (response.code !== 0) {
+              throw new Error(response.message || '删除失败');
+            }
+          });
+          
           await Promise.all(deletePromises);
           message.success('删除成功');
           setSelectedRows([]);
           fetchFileList(pagination.current, pagination.pageSize);
         } catch (error) {
-          message.error('删除失败');
+          message.error(error instanceof Error ? error.message : '删除失败');
         }
       },
     });
@@ -411,13 +488,13 @@ const CloudDrive: React.FC = () => {
         target_pid: selectedFolderId,
       });
 
-      if (response.code === 200) {
+      if (response.code === 0) {
         message.success('移动成功');
         setIsMoveModalVisible(false);
         setSelectedRows([]);
         fetchFileList(pagination.current, pagination.pageSize);
       } else {
-        message.error(response.msg || '移动失败');
+        message.error(response.message || '移动失败');
       }
     } catch (error) {
       message.error('移动失败');
@@ -451,6 +528,9 @@ const CloudDrive: React.FC = () => {
           </Button>
           <Button icon={<FolderAddOutlined />} onClick={handleNewFolder}>
             新建文件夹
+          </Button>
+          <Button icon={<ReloadOutlined />} onClick={() => fetchFileList(pagination.current, pagination.pageSize)}>
+            刷新
           </Button>
           {selectedRows.length > 0 && (
             <>
