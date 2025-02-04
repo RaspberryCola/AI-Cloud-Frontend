@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Space, Input } from 'antd';
 import {
   UploadOutlined,
@@ -9,8 +9,9 @@ import {
   DeleteOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
+import { setSearchKey } from '../../store/cloudDriveSlice';
 
 interface FileToolbarProps {
   onUpload: () => void;
@@ -33,7 +34,14 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
   onSearch,
   onClearSearch,
 }) => {
+  const dispatch = useDispatch();
   const { selectedRows, searchKey, isSearchMode } = useSelector((state: RootState) => state.cloudDrive);
+
+  const handleSearch = () => {
+    if (searchKey.trim()) {
+      onSearch(searchKey);
+    }
+  };
 
   return (
     <div className="flex justify-between items-center">
@@ -65,13 +73,13 @@ export const FileToolbar: React.FC<FileToolbarProps> = ({
         <Input
           placeholder="搜索文件"
           value={searchKey}
-          onChange={(e) => onSearch(e.target.value)}
-          onPressEnter={() => onSearch(searchKey)}
+          onChange={(e) => dispatch(setSearchKey(e.target.value))}
+          onPressEnter={handleSearch}
           style={{ width: 200 }}
           suffix={
             <SearchOutlined
               style={{ cursor: 'pointer' }}
-              onClick={() => onSearch(searchKey)}
+              onClick={handleSearch}
             />
           }
         />
