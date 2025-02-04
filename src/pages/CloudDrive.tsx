@@ -358,11 +358,14 @@ const CloudDrive: React.FC = () => {
         const pathParts = pathResponse.data.path.split('/').filter(Boolean);
         const idParts = idPathResponse.data.id_path.split('/').filter(Boolean);
         
-        // 组合路径信息，跳过 root
-        return pathParts.map((name: string, index: number) => ({
-          id: index === 0 ? null : idParts[index],
-          name: name
-        }));
+        // 确保第一个元素始终是"根目录"
+        return [
+          { id: null, name: '根目录' },
+          ...pathParts.slice(1).map((name: string, index: number) => ({
+            id: idParts[index + 1],
+            name: name
+          }))
+        ];
       }
       throw new Error(pathResponse.message || idPathResponse.message || '获取路径失败');
     } catch (error: any) {
@@ -446,8 +449,8 @@ const CloudDrive: React.FC = () => {
     try {
       const response = await getFilePathById(fileId);
       if (response.code === 0) {
-        const path = response.data.path.replace(/^\/root\//, '');
-        return path || '根目录';
+        const path = response.data.path.replace(/^\/root\//, '/根目录/');
+        return path.substring(1) || '根目录';
       }
       throw new Error(response.message || '获取路径失败');
     } catch (error) {
@@ -523,7 +526,7 @@ const CloudDrive: React.FC = () => {
         <Breadcrumb>
           {!isSearchMode ? (
             currentPath.map((item, index) => (
-              <Breadcrumb.Item key={item.id || 'root'}>
+              <Breadcrumb.Item key={item.id || '根目录'}>
                 <a onClick={() => handleBreadcrumbClick(index)}>{item.name}</a>
               </Breadcrumb.Item>
             ))

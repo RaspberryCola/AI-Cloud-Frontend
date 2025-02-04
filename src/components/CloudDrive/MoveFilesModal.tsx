@@ -33,7 +33,7 @@ const MoveFilesModal: React.FC<MoveFilesModalProps> = ({
       <div className="space-y-4">
         <Breadcrumb>
           {moveTargetPath.map((item, index) => (
-            <Breadcrumb.Item key={item.id || 'root'}>
+            <Breadcrumb.Item key={item.id || '根目录'}>
               <a onClick={() => onBreadcrumbClick(index)}>{item.name}</a>
             </Breadcrumb.Item>
           ))}
