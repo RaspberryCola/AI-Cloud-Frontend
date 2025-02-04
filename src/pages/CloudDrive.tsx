@@ -9,12 +9,24 @@ import {
   DeleteOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { getFileList, createFolder, deleteFile, downloadFile, moveFiles, uploadFile, searchFiles, renameFile as renameFileApi } from '../services/api';
+import {
+  getFileList,
+  createFolder,
+  deleteFile,
+  downloadFile,
+  moveFiles,
+  uploadFile,
+  searchFiles,
+  renameFile as renameFileApi,
+  getFilePathById,
+  getFileIdPath,
+} from '../services/api';
 import type { FileItem, BreadcrumbItem, PaginationState } from '../types/cloudDrive';
 import { getColumns } from '../components/CloudDrive/columns';
 import { downloadBlob } from '../utils/fileUtils';
 import MoveFilesModal from '../components/CloudDrive/MoveFilesModal';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { ApiResponse } from '../types/apiResponse';
 
 const CloudDrive: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<BreadcrumbItem[]>([{ id: null, name: '根目录' }]);
@@ -39,6 +51,7 @@ const CloudDrive: React.FC = () => {
   const [isRenameModalVisible, setIsRenameModalVisible] = useState(false);
   const [renameFile, setRenameFile] = useState<FileItem | null>(null);
   const [newFileName, setNewFileName] = useState('');
+  const [isLoadingPath, setIsLoadingPath] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -320,36 +333,70 @@ const CloudDrive: React.FC = () => {
   const handleSearch = () => {
     if (searchKey.trim()) {
       setIsSearchMode(true);
+      setSelectedRows([]);
       fetchFileList(1, pagination.pageSize, true);
     } else {
-      setIsSearchMode(false);
-      fetchFileList(1, pagination.pageSize, false);
+      handleClearSearch();
     }
   };
 
   const handleClearSearch = () => {
     setSearchKey('');
     setIsSearchMode(false);
+    setSelectedRows([]);
     fetchFileList(1, pagination.pageSize, false);
   };
 
-  const handleFolderClick = (record: FileItem) => {
-    if (record.IsDir) {
-      if (isSearchMode) {
-        // 在搜索模式下点击文件夹，清除搜索状态并进入该文件夹
-        setSearchKey('');
-        setIsSearchMode(false);
-        const newPath = [{ id: null, name: '根目录' }];
+  const getFilePath = async (fileId: string): Promise<BreadcrumbItem[]> => {
+    try {
+      const [pathResponse, idPathResponse] = await Promise.all([
+        getFilePathById(fileId),
+        getFileIdPath(fileId)
+      ]);
+
+      if (pathResponse.code === 0 && idPathResponse.code === 0) {
+        const pathParts = pathResponse.data.path.split('/').filter(Boolean);
+        const idParts = idPathResponse.data.id_path.split('/').filter(Boolean);
         
-        // 直接进入该文件夹
-        newPath.push({ id: record.ID, name: record.Name });
-        
-        const encodedPath = encodeURIComponent(JSON.stringify(newPath));
-        navigate(`?path=${encodedPath}`);
+        // 组合路径信息，跳过 root
+        return pathParts.map((name: string, index: number) => ({
+          id: index === 0 ? null : idParts[index],
+          name: name
+        }));
+      }
+      throw new Error(pathResponse.message || idPathResponse.message || '获取路径失败');
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        message.error('登录已过期，请重新登录');
+        // 跳转到登录页
+        navigate('/login');
       } else {
-        const newPath = [...currentPath, { id: record.ID, name: record.Name }];
-        const encodedPath = encodeURIComponent(JSON.stringify(newPath));
-        navigate(`?path=${encodedPath}`);
+        message.error('获取文件路径失败');
+      }
+      return [{ id: null, name: '根目录' }];
+    }
+  };
+
+  const handleFolderClick = async (record: FileItem) => {
+    if (record.IsDir) {
+      setIsLoadingPath(true);
+      try {
+        if (isSearchMode) {
+          // 在搜索模式下，先获取完整路径
+          const fullPath = await getFilePath(record.ID);
+          setSearchKey('');
+          setIsSearchMode(false);
+          const encodedPath = encodeURIComponent(JSON.stringify(fullPath));
+          navigate(`?path=${encodedPath}`);
+        } else {
+          const newPath = [...currentPath, { id: record.ID, name: record.Name }];
+          const encodedPath = encodeURIComponent(JSON.stringify(newPath));
+          navigate(`?path=${encodedPath}`);
+        }
+      } catch (error) {
+        message.error('导航失败');
+      } finally {
+        setIsLoadingPath(false);
       }
     }
   };
@@ -395,6 +442,20 @@ const CloudDrive: React.FC = () => {
     message.info(`分享文件：${file.Name}`);
   };
 
+  const getFileDisplayPath = async (fileId: string): Promise<string> => {
+    try {
+      const response = await getFilePathById(fileId);
+      if (response.code === 0) {
+        const path = response.data.path.replace(/^\/root\//, '');
+        return path || '根目录';
+      }
+      throw new Error(response.message || '获取路径失败');
+    } catch (error) {
+      console.error('获取文件路径失败:', error);
+      return '获取路径失败';
+    }
+  };
+
   const columns = getColumns({
     sortField,
     sortOrder,
@@ -405,6 +466,8 @@ const CloudDrive: React.FC = () => {
     onDelete: handleSingleDelete,
     onRename: handleRename,
     onShare: handleShare,
+    isSearchMode,
+    getFilePath: getFileDisplayPath,
   });
 
   return (
@@ -465,7 +528,12 @@ const CloudDrive: React.FC = () => {
               </Breadcrumb.Item>
             ))
           ) : (
-            <Breadcrumb.Item>搜索结果</Breadcrumb.Item>
+            <>
+              <Breadcrumb.Item>
+                <a onClick={() => handleClearSearch()}>根目录</a>
+              </Breadcrumb.Item>
+              <Breadcrumb.Item>搜索结果</Breadcrumb.Item>
+            </>
           )}
         </Breadcrumb>
       </div>
@@ -473,7 +541,7 @@ const CloudDrive: React.FC = () => {
       <Table
         columns={columns}
         dataSource={data}
-        loading={loading}
+        loading={loading || isLoadingPath}
         pagination={pagination}
         rowKey="ID"
         onChange={handleTableChange}

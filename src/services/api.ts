@@ -199,4 +199,12 @@ export const searchFiles = async (params: FileSearchParams): Promise<ApiResponse
 
 export const renameFile = async (data: RenameFileRequest): Promise<ApiResponse<null>> => {
   return api.put('/files/rename', data);
+};
+
+export const getFilePathById = async (fileId: string): Promise<ApiResponse<{ path: string }>> => {
+  return api.get(`/files/path`, { params: { file_id: fileId } });
+};
+
+export const getFileIdPath = async (fileId: string): Promise<ApiResponse<{ id_path: string }>> => {
+  return api.get(`/files/id-path`, { params: { file_id: fileId } });
 }; 
