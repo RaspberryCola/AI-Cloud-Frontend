@@ -120,6 +120,14 @@ interface FileListParams {
   sort?: string;
 }
 
+// 文件搜索参数
+interface FileSearchParams {
+  key: string;
+  page: number;
+  page_size: number;
+  sort?: string;
+}
+
 // 创建文件夹请求参数
 interface CreateFolderRequest {
   name: string;
@@ -177,4 +185,8 @@ export const uploadFile = async (file: File, parentId?: string): Promise<ApiResp
 
 export const moveFiles = async (data: MoveFilesRequest): Promise<ApiResponse<null>> => {
   return api.post('/files/move', data);
+};
+
+export const searchFiles = async (params: FileSearchParams): Promise<ApiResponse<PageData<FileItem>>> => {
+  return api.get('/files/search', { params });
 }; 

@@ -7,8 +7,9 @@ import {
   DownloadOutlined,
   RetweetOutlined,
   DeleteOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
-import { getFileList, createFolder, deleteFile, downloadFile, moveFiles, uploadFile } from '../services/api';
+import { getFileList, createFolder, deleteFile, downloadFile, moveFiles, uploadFile, searchFiles } from '../services/api';
 import type { FileItem, BreadcrumbItem, PaginationState } from '../types/cloudDrive';
 import { getColumns } from '../components/CloudDrive/columns';
 import { downloadBlob } from '../utils/fileUtils';
@@ -33,19 +34,32 @@ const CloudDrive: React.FC = () => {
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>();
   const [moveTargetPath, setMoveTargetPath] = useState<BreadcrumbItem[]>([{ id: null, name: '根目录' }]);
   const [moveTargetData, setMoveTargetData] = useState<FileItem[]>([]);
+  const [searchKey, setSearchKey] = useState('');
+  const [isSearchMode, setIsSearchMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const fetchFileList = async (page = 1, pageSize = 10) => {
+  const fetchFileList = async (page = 1, pageSize = 10, isSearch = isSearchMode) => {
     try {
       setLoading(true);
-      const currentFolder = currentPath[currentPath.length - 1];
-      const response = await getFileList({
-        parent_id: currentFolder.id || undefined,
-        page,
-        page_size: pageSize,
-        sort: `${sortField === 'name' ? 'name' : 'updated_at'}:${sortOrder}`,
-      });
+      let response;
+      
+      if (isSearch && searchKey.trim()) {
+        response = await searchFiles({
+          key: searchKey.trim(),
+          page,
+          page_size: pageSize,
+          sort: `${sortField === 'name' ? 'name' : 'updated_at'}:${sortOrder}`,
+        });
+      } else {
+        const currentFolder = currentPath[currentPath.length - 1];
+        response = await getFileList({
+          parent_id: currentFolder.id || undefined,
+          page,
+          page_size: pageSize,
+          sort: `${sortField === 'name' ? 'name' : 'updated_at'}:${sortOrder}`,
+        });
+      }
 
       if (response.code === 0) {
         setData(response.data.list);
@@ -296,11 +310,40 @@ const CloudDrive: React.FC = () => {
     fetchFileList(newPagination.current, newPagination.pageSize);
   };
 
+  const handleSearch = () => {
+    if (searchKey.trim()) {
+      setIsSearchMode(true);
+      fetchFileList(1, pagination.pageSize, true);
+    } else {
+      setIsSearchMode(false);
+      fetchFileList(1, pagination.pageSize, false);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchKey('');
+    setIsSearchMode(false);
+    fetchFileList(1, pagination.pageSize, false);
+  };
+
   const handleFolderClick = (record: FileItem) => {
     if (record.IsDir) {
-      const newPath = [...currentPath, { id: record.ID, name: record.Name }];
-      const encodedPath = encodeURIComponent(JSON.stringify(newPath));
-      navigate(`?path=${encodedPath}`);
+      if (isSearchMode) {
+        // 在搜索模式下点击文件夹，清除搜索状态并进入该文件夹
+        setSearchKey('');
+        setIsSearchMode(false);
+        const newPath = [{ id: null, name: '根目录' }];
+        
+        // 直接进入该文件夹
+        newPath.push({ id: record.ID, name: record.Name });
+        
+        const encodedPath = encodeURIComponent(JSON.stringify(newPath));
+        navigate(`?path=${encodedPath}`);
+      } else {
+        const newPath = [...currentPath, { id: record.ID, name: record.Name }];
+        const encodedPath = encodeURIComponent(JSON.stringify(newPath));
+        navigate(`?path=${encodedPath}`);
+      }
     }
   };
 
@@ -347,15 +390,39 @@ const CloudDrive: React.FC = () => {
             </>
           )}
         </Space>
+        <Space>
+          <Input
+            placeholder="搜索文件"
+            value={searchKey}
+            onChange={(e) => setSearchKey(e.target.value)}
+            onPressEnter={handleSearch}
+            style={{ width: 200 }}
+            suffix={
+              <SearchOutlined
+                style={{ cursor: 'pointer' }}
+                onClick={handleSearch}
+              />
+            }
+          />
+          {isSearchMode && (
+            <Button onClick={handleClearSearch}>
+              清除搜索
+            </Button>
+          )}
+        </Space>
       </div>
 
       <div className="mb-4">
         <Breadcrumb>
-          {currentPath.map((item, index) => (
-            <Breadcrumb.Item key={item.id || 'root'}>
-              <a onClick={() => handleBreadcrumbClick(index)}>{item.name}</a>
-            </Breadcrumb.Item>
-          ))}
+          {!isSearchMode ? (
+            currentPath.map((item, index) => (
+              <Breadcrumb.Item key={item.id || 'root'}>
+                <a onClick={() => handleBreadcrumbClick(index)}>{item.name}</a>
+              </Breadcrumb.Item>
+            ))
+          ) : (
+            <Breadcrumb.Item>搜索结果</Breadcrumb.Item>
+          )}
         </Breadcrumb>
       </div>
 
