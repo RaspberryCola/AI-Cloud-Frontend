@@ -9,7 +9,7 @@ import {
   DeleteOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { getFileList, createFolder, deleteFile, downloadFile, moveFiles, uploadFile, searchFiles } from '../services/api';
+import { getFileList, createFolder, deleteFile, downloadFile, moveFiles, uploadFile, searchFiles, renameFile as renameFileApi } from '../services/api';
 import type { FileItem, BreadcrumbItem, PaginationState } from '../types/cloudDrive';
 import { getColumns } from '../components/CloudDrive/columns';
 import { downloadBlob } from '../utils/fileUtils';
@@ -36,6 +36,9 @@ const CloudDrive: React.FC = () => {
   const [moveTargetData, setMoveTargetData] = useState<FileItem[]>([]);
   const [searchKey, setSearchKey] = useState('');
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [isRenameModalVisible, setIsRenameModalVisible] = useState(false);
+  const [renameFile, setRenameFile] = useState<FileItem | null>(null);
+  const [newFileName, setNewFileName] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -182,11 +185,17 @@ const CloudDrive: React.FC = () => {
 
   const handleSingleDownload = async (file: FileItem) => {
     try {
+      if (file.IsDir) {
+        message.loading({ content: `正在准备下载文件夹：${file.Name}`, key: file.ID });
+      } else {
+        message.loading({ content: `正在下载：${file.Name}`, key: file.ID });
+      }
+      
       const blob = await downloadFile(file.ID);
       downloadBlob(blob, file.Name, file.MIMEType);
-      message.success('下载成功');
+      message.success({ content: '下载成功', key: file.ID });
     } catch (error) {
-      message.error('下载失败');
+      message.error({ content: '下载失败', key: file.ID });
     }
   };
 
@@ -198,9 +207,7 @@ const CloudDrive: React.FC = () => {
 
     try {
       for (const file of selectedRows) {
-        if (!file.IsDir) {
-          await handleSingleDownload(file);
-        }
+        await handleSingleDownload(file);
       }
     } catch (error) {
       message.error('批量下载失败');
@@ -353,6 +360,41 @@ const CloudDrive: React.FC = () => {
     navigate(`?path=${encodedPath}`);
   };
 
+  const handleRename = (file: FileItem) => {
+    setRenameFile(file);
+    setNewFileName(file.Name);
+    setIsRenameModalVisible(true);
+  };
+
+  const handleRenameOk = async () => {
+    if (!renameFile || !newFileName.trim()) {
+      message.warning('请输入文件名称');
+      return;
+    }
+
+    try {
+      const response = await renameFileApi({
+        file_id: renameFile.ID,
+        new_name: newFileName.trim()
+      });
+      
+      if (response.code === 0) {
+        message.success('重命名成功');
+        setIsRenameModalVisible(false);
+        fetchFileList(pagination.current, pagination.pageSize);
+      } else {
+        message.error(response.message || '重命名失败');
+      }
+    } catch (error) {
+      message.error('重命名失败');
+    }
+  };
+
+  const handleShare = (file: FileItem) => {
+    // TODO: 实现分享功能
+    message.info(`分享文件：${file.Name}`);
+  };
+
   const columns = getColumns({
     sortField,
     sortOrder,
@@ -361,6 +403,8 @@ const CloudDrive: React.FC = () => {
     onDownload: handleSingleDownload,
     onToggleFavorite: (record) => message.info(`收藏文件：${record.Name}`),
     onDelete: handleSingleDelete,
+    onRename: handleRename,
+    onShare: handleShare,
   });
 
   return (
@@ -469,6 +513,19 @@ const CloudDrive: React.FC = () => {
         onBreadcrumbClick={handleMoveTargetBreadcrumbClick}
         onFolderClick={handleMoveTargetFolderClick}
       />
+
+      <Modal
+        title="重命名"
+        open={isRenameModalVisible}
+        onOk={handleRenameOk}
+        onCancel={() => setIsRenameModalVisible(false)}
+      >
+        <Input
+          placeholder="请输入新的名称"
+          value={newFileName}
+          onChange={(e) => setNewFileName(e.target.value)}
+        />
+      </Modal>
     </div>
   );
 };

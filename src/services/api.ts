@@ -140,6 +140,12 @@ interface MoveFilesRequest {
   target_pid?: string;
 }
 
+// 重命名请求参数
+interface RenameFileRequest {
+  file_id: string;
+  new_name: string;
+}
+
 // API函数
 export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   return api.post('/users/login', data);
@@ -189,4 +195,8 @@ export const moveFiles = async (data: MoveFilesRequest): Promise<ApiResponse<nul
 
 export const searchFiles = async (params: FileSearchParams): Promise<ApiResponse<PageData<FileItem>>> => {
   return api.get('/files/search', { params });
+};
+
+export const renameFile = async (data: RenameFileRequest): Promise<ApiResponse<null>> => {
+  return api.put('/files/rename', data);
 }; 

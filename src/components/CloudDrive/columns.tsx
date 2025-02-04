@@ -1,5 +1,6 @@
 import React from 'react';
-import { Space, Button, Tooltip } from 'antd';
+import { Space, Button, Tooltip, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   DownloadOutlined,
   StarOutlined,
@@ -7,6 +8,9 @@ import {
   CaretUpOutlined,
   CaretDownOutlined,
   SwapOutlined,
+  MoreOutlined,
+  EditOutlined,
+  ShareAltOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { getFileIcon } from '../../utils/fileIcons';
@@ -21,6 +25,8 @@ export const getColumns = ({
   onDownload,
   onToggleFavorite,
   onDelete,
+  onRename,
+  onShare,
 }: {
   sortField: 'name' | 'updated_at';
   sortOrder: 'asc' | 'desc';
@@ -29,6 +35,8 @@ export const getColumns = ({
   onDownload: (record: FileItem) => void;
   onToggleFavorite: (record: FileItem) => void;
   onDelete: (record: FileItem) => void;
+  onRename: (record: FileItem) => void;
+  onShare: (record: FileItem) => void;
 }) => [
   {
     title: (
@@ -116,10 +124,37 @@ export const getColumns = ({
   {
     title: '操作',
     key: 'action',
-    width: 120,
-    render: (_: unknown, record: FileItem) => (
-      <Space size="middle">
-        {!record.IsDir && (
+    width: 150,
+    render: (_: unknown, record: FileItem) => {
+      const moreItems: MenuProps['items'] = [
+        {
+          key: 'rename',
+          icon: <EditOutlined />,
+          label: '重命名',
+          onClick: () => {
+            onRename(record);
+          },
+        },
+        {
+          key: 'share',
+          icon: <ShareAltOutlined />,
+          label: '分享',
+          onClick: () => {
+            onShare(record);
+          },
+        },
+        {
+          key: 'favorite',
+          icon: <StarOutlined />,
+          label: '收藏',
+          onClick: () => {
+            onToggleFavorite(record);
+          },
+        },
+      ];
+
+      return (
+        <Space size="middle">
           <Tooltip title="下载">
             <Button
               type="text"
@@ -131,31 +166,32 @@ export const getColumns = ({
               }}
             />
           </Tooltip>
-        )}
-        <Tooltip title="收藏">
-          <Button
-            type="text"
-            icon={<StarOutlined />}
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite(record);
-            }}
-          />
-        </Tooltip>
-        <Tooltip title="删除">
-          <Button
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(record);
-            }}
-          />
-        </Tooltip>
-      </Space>
-    ),
+          <Tooltip title="删除">
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(record);
+              }}
+            />
+          </Tooltip>
+          <Dropdown
+            menu={{ items: moreItems }}
+            trigger={['click']}
+            placement="bottomRight"
+          >
+            <Button
+              type="text"
+              icon={<MoreOutlined />}
+              size="small"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </Dropdown>
+        </Space>
+      );
+    },
   },
 ]; 
