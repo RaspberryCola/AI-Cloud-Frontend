@@ -20,7 +20,7 @@ const Login: React.FC = () => {
     try {
       const response = await loginApi(values);
       
-      if (response.code === 200) {
+      if (response.code === 0) {
         // 保存token到localStorage
         localStorage.setItem('token', response.data.access_token);
         

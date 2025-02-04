@@ -24,7 +24,7 @@ const Register: React.FC = () => {
       const { confirmPassword, ...registerData } = values;
       const response = await registerApi(registerData);
 
-      if (response.code === 201) {
+      if (response.code === 0) {
         message.success(response.message);
         // 注册成功后自动登录
         // 这里可以根据实际需求决定是否自动登录，或者跳转到登录页面
