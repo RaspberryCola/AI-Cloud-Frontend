@@ -13,6 +13,7 @@ import type { FileItem, BreadcrumbItem, PaginationState } from '../types/cloudDr
 import { getColumns } from '../components/CloudDrive/columns';
 import { downloadBlob } from '../utils/fileUtils';
 import MoveFilesModal from '../components/CloudDrive/MoveFilesModal';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const CloudDrive: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<BreadcrumbItem[]>([{ id: null, name: '根目录' }]);
@@ -32,6 +33,8 @@ const CloudDrive: React.FC = () => {
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>();
   const [moveTargetPath, setMoveTargetPath] = useState<BreadcrumbItem[]>([{ id: null, name: '根目录' }]);
   const [moveTargetData, setMoveTargetData] = useState<FileItem[]>([]);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchFileList = async (page = 1, pageSize = 10) => {
     try {
@@ -86,6 +89,21 @@ const CloudDrive: React.FC = () => {
   useEffect(() => {
     fetchFileList();
   }, [currentPath, sortField, sortOrder]);
+
+  useEffect(() => {
+    // 从 URL 中解析路径
+    const pathParam = new URLSearchParams(location.search).get('path');
+    if (pathParam) {
+      try {
+        const pathData = JSON.parse(decodeURIComponent(pathParam));
+        setCurrentPath(pathData);
+      } catch (e) {
+        setCurrentPath([{ id: null, name: '根目录' }]);
+      }
+    } else {
+      setCurrentPath([{ id: null, name: '根目录' }]);
+    }
+  }, [location.search]);
 
   const handleUpload = () => {
     const input = document.createElement('input');
@@ -278,15 +296,25 @@ const CloudDrive: React.FC = () => {
     fetchFileList(newPagination.current, newPagination.pageSize);
   };
 
+  const handleFolderClick = (record: FileItem) => {
+    if (record.IsDir) {
+      const newPath = [...currentPath, { id: record.ID, name: record.Name }];
+      const encodedPath = encodeURIComponent(JSON.stringify(newPath));
+      navigate(`?path=${encodedPath}`);
+    }
+  };
+
+  const handleBreadcrumbClick = (index: number) => {
+    const newPath = currentPath.slice(0, index + 1);
+    const encodedPath = encodeURIComponent(JSON.stringify(newPath));
+    navigate(`?path=${encodedPath}`);
+  };
+
   const columns = getColumns({
     sortField,
     sortOrder,
     onSortChange: handleSortChange,
-    onFolderClick: (record) => {
-      if (record.IsDir) {
-        setCurrentPath([...currentPath, { id: record.ID, name: record.Name }]);
-      }
-    },
+    onFolderClick: handleFolderClick,
     onDownload: handleSingleDownload,
     onToggleFavorite: (record) => message.info(`收藏文件：${record.Name}`),
     onDelete: handleSingleDelete,
@@ -321,13 +349,15 @@ const CloudDrive: React.FC = () => {
         </Space>
       </div>
 
-      <Breadcrumb className="py-2">
-        {currentPath.map((item, index) => (
-          <Breadcrumb.Item key={item.id || 'root'}>
-            <a onClick={() => setCurrentPath(currentPath.slice(0, index + 1))}>{item.name}</a>
-          </Breadcrumb.Item>
-        ))}
-      </Breadcrumb>
+      <div className="mb-4">
+        <Breadcrumb>
+          {currentPath.map((item, index) => (
+            <Breadcrumb.Item key={item.id || 'root'}>
+              <a onClick={() => handleBreadcrumbClick(index)}>{item.name}</a>
+            </Breadcrumb.Item>
+          ))}
+        </Breadcrumb>
+      </div>
 
       <Table
         columns={columns}
