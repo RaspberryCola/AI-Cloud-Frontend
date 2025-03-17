@@ -272,5 +272,6 @@ export const useFileOperations = () => {
     getFilePath,
     handleSearch,
     handleClearSearch,
+    getFileList,
   };
 }; 

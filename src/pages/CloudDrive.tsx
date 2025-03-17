@@ -38,6 +38,7 @@ const CloudDrive: React.FC = () => {
     getFilePath,
     handleSearch,
     handleClearSearch,
+    getFileList,
   } = useFileOperations();
 
   const [isNewFolderModalVisible, setIsNewFolderModalVisible] = useState(false);
@@ -114,6 +115,18 @@ const CloudDrive: React.FC = () => {
     setSelectedFolderId(undefined);
     setMoveTargetPath([{ id: null, name: '根目录' }]);
     setIsMoveModalVisible(true);
+    // 获取根目录下的文件夹列表
+    getFileList({
+      parent_id: undefined,
+      page: 1,
+      page_size: 999,
+      sort: `${sortField}:${sortOrder}`,
+    }).then((response: any) => {
+      if (response.code === 0) {
+        // 只显示文件夹
+        setMoveTargetData(response.data.list.filter((item: FileItem) => item.IsDir));
+      }
+    });
   };
 
   const handleMoveModalOk = async () => {
@@ -154,6 +167,40 @@ const CloudDrive: React.FC = () => {
       if (isSearchMode) {
         handleClearSearch();
       }
+    }
+  };
+
+  const handleMoveTargetFolderClick = async (record: FileItem) => {
+    setSelectedFolderId(record.ID);
+    setMoveTargetPath([...moveTargetPath, { id: record.ID, name: record.Name }]);
+    // 获取点击的文件夹下的子文件夹列表
+    const response = await getFileList({
+      parent_id: record.ID,
+      page: 1,
+      page_size: 999,
+      sort: `${sortField}:${sortOrder}`,
+    });
+    if (response.code === 0) {
+      // 只显示文件夹
+      setMoveTargetData(response.data.list.filter((item: FileItem) => item.IsDir));
+    }
+  };
+
+  const handleMoveTargetBreadcrumbClick = async (index: number) => {
+    const newPath = moveTargetPath.slice(0, index + 1);
+    setMoveTargetPath(newPath);
+    const targetFolder = newPath[newPath.length - 1];
+    setSelectedFolderId(targetFolder.id || undefined);
+    // 获取面包屑导航点击后的文件夹列表
+    const response = await getFileList({
+      parent_id: targetFolder.id || undefined,
+      page: 1,
+      page_size: 999,
+      sort: `${sortField}:${sortOrder}`,
+    });
+    if (response.code === 0) {
+      // 只显示文件夹
+      setMoveTargetData(response.data.list.filter((item: FileItem) => item.IsDir));
     }
   };
 
@@ -245,16 +292,8 @@ const CloudDrive: React.FC = () => {
         onCancel={() => setIsMoveModalVisible(false)}
         moveTargetPath={moveTargetPath}
         moveTargetData={moveTargetData}
-        onBreadcrumbClick={(index) => {
-          const newPath = moveTargetPath.slice(0, index + 1);
-          setMoveTargetPath(newPath);
-          const targetFolder = newPath[newPath.length - 1];
-          setSelectedFolderId(targetFolder.id || undefined);
-        }}
-        onFolderClick={(record) => {
-          setSelectedFolderId(record.ID);
-          setMoveTargetPath([...moveTargetPath, { id: record.ID, name: record.Name }]);
-        }}
+        onBreadcrumbClick={handleMoveTargetBreadcrumbClick}
+        onFolderClick={handleMoveTargetFolderClick}
       />
 
       <Modal
