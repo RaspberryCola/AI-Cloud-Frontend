@@ -207,4 +207,46 @@ export const getFilePathById = async (fileId: string): Promise<ApiResponse<{ pat
 
 export const getFileIdPath = async (fileId: string): Promise<ApiResponse<{ id_path: string }>> => {
   return api.get(`/files/id-path`, { params: { file_id: fileId } });
-}; 
+};
+
+// 知识库接口类型
+export interface KnowledgeItem {
+  ID: string;
+  Name: string;
+  Description: string;
+  UserID: number;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
+interface KnowledgeListParams {
+  page: number;
+  page_size: number;
+  name?: string;
+}
+
+// 知识库API
+export const getKnowledgeList = async (
+  params: KnowledgeListParams
+): Promise<ApiResponse<PageData<KnowledgeItem>>> => {
+  return api.get('/knowledge/page', { params });
+};
+
+export const createKnowledge = async (
+  data: { Name: string; Description?: string }
+): Promise<ApiResponse<KnowledgeItem>> => {
+  return api.post('/knowledge/create', data);
+};
+
+export const updateKnowledge = async (
+  id: string,
+  data: { Name: string; Description?: string }
+): Promise<ApiResponse<KnowledgeItem>> => {
+  return api.put(`/knowledge/update/${id}`, data);
+};
+
+export const deleteKnowledge = async (
+  id: string
+): Promise<ApiResponse<null>> => {
+  return api.delete(`/knowledge/delete/${id}`);
+};

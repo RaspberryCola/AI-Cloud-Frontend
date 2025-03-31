@@ -1,52 +1,139 @@
 import React from 'react';
-import { Card, List, Input, Button, Tag, Space } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { Card, List, Input, Button, Tag, Space, Modal, Form, message } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { 
+  getKnowledgeList, 
+  createKnowledge, 
+  updateKnowledge, 
+  deleteKnowledge,
+  KnowledgeItem 
+} from '../services/api';
 
 const { Search } = Input;
 
-interface KnowledgeItem {
-  id: string;
-  title: string;
-  description: string;
-  tags: string[];
-  createTime: string;
-}
-
-const mockData: KnowledgeItem[] = [
-  {
-    id: '1',
-    title: '项目管理最佳实践',
-    description: '总结了项目管理中的关键点和注意事项，包括任务分配、进度控制、风险管理等方面的经验。',
-    tags: ['项目管理', '最佳实践', '经验总结'],
-    createTime: '2024-02-03',
-  },
-  {
-    id: '2',
-    title: '前端开发规范',
-    description: '详细的前端开发规范文档，包括代码风格、命名规范、组件设计原则等内容。',
-    tags: ['前端开发', '规范', '文档'],
-    createTime: '2024-02-03',
-  },
-  {
-    id: '3',
-    title: 'API接口文档',
-    description: '系统API接口的详细说明，包括接口地址、参数说明、返回值格式等信息。',
-    tags: ['API', '接口文档', '开发文档'],
-    createTime: '2024-02-03',
-  },
-];
-
 const KnowledgeBase: React.FC = () => {
-  const onSearch = (value: string) => {
-    console.log('搜索:', value);
+  const [form] = Form.useForm();
+  const [editingItem, setEditingItem] = React.useState<KnowledgeItem | null>(null);
+  const [isModalVisible, setIsModalVisible] = React.useState(false);
+  const [data, setData] = React.useState<KnowledgeItem[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    fetchKnowledgeList();
+  }, []);
+
+  const fetchKnowledgeList = async () => {
+    setLoading(true);
+    try {
+      const res = await getKnowledgeList({ page: 1, page_size: 10 });
+      if (res.code === 0) {
+        setData(res.data.list);
+      } else {
+        message.error(res.message || '获取知识库列表失败');
+      }
+    } catch (error) {
+      message.error('获取知识库列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+  const onSearch = async (value: string) => {
+    setLoading(true);
+    try {
+      const res = await getKnowledgeList({ page: 1, page_size: 10, name: value });
+      if (res.code === 0) {
+        setData(res.data.list);
+      } else {
+        message.error(res.message || '搜索知识库失败');
+      }
+    } catch (error) {
+      message.error('搜索知识库失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateNew = () => {
-    console.log('创建新知识条目');
+    setEditingItem(null);
+    form.resetFields();
+    setIsModalVisible(true);
+  };
+
+  const handleDelete = (ID: string, Name: string) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除知识库"${Name}"吗？`,
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      async onOk() {
+        try {
+          const res = await deleteKnowledge(ID);
+          if (res.code === 0) {
+            message.success('删除成功');
+            fetchKnowledgeList();
+          } else {
+            message.error(res.message || '删除失败');
+          }
+        } catch (error) {
+          message.error('删除失败');
+        }
+      },
+    });
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingItem) {
+        const res = await updateKnowledge(editingItem.ID, values);
+        if (res.code === 0) {
+          message.success('更新成功');
+          fetchKnowledgeList();
+        } else {
+          message.error(res.message || '更新失败');
+        }
+      } else {
+        const res = await createKnowledge(values);
+        if (res.code === 0) {
+          message.success('创建成功');
+          fetchKnowledgeList();
+        } else {
+          message.error(res.message || '创建失败');
+        }
+      }
+      setIsModalVisible(false);
+    } catch (error) {
+      console.error('操作失败:', error);
+    }
   };
 
   return (
     <div className="p-6">
+      <Modal
+        title={editingItem ? "编辑知识库" : "新建知识库"}
+        visible={isModalVisible}
+        onOk={handleEditSubmit}
+        onCancel={() => setIsModalVisible(false)}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            name="name"
+            label="知识库名称"
+            rules={[{ required: true, message: '请输入知识库名称' }]}
+          >
+            <Input placeholder="请输入知识库名称" />
+          </Form.Item>
+          <Form.Item
+            name="description"
+            label="知识库描述"
+          >
+            <Input.TextArea placeholder="请输入知识库描述" />
+          </Form.Item>
+        </Form>
+      </Modal>
       <div className="mb-6 flex justify-between items-center">
         <Search
           placeholder="搜索知识库..."
@@ -68,33 +155,54 @@ const KnowledgeBase: React.FC = () => {
 
       <List
         grid={{ gutter: 16, column: 3 }}
-        dataSource={mockData}
+        dataSource={data}
+        loading={loading}
         renderItem={(item) => (
           <List.Item>
             <Card
               hoverable
               className="h-full"
+              onClick={() => navigate(`/knowledge-base/${item.ID}`)}
               title={
-                <div className="font-bold text-lg truncate" title={item.title}>
-                  {item.title}
+                <div className="font-bold text-lg truncate" title={item.Name}>
+                  {item.Name}
                 </div>
               }
             >
               <div className="mb-4 text-gray-600 h-12 overflow-hidden">
-                {item.description}
+                {item.Description}
               </div>
-              <Space direction="vertical" className="w-full">
-                <div className="flex flex-wrap gap-1">
-                  {item.tags.map((tag) => (
-                    <Tag key={tag} color="blue">
-                      {tag}
-                    </Tag>
-                  ))}
+              <div className="flex justify-between items-center">
+                <div className="text-gray-400 text-sm">
+                  更新时间：{new Date(item.UpdatedAt).toLocaleString()}
                 </div>
-                <div className="text-right text-gray-400 text-sm">
-                  创建时间：{item.createTime}
-                </div>
-              </Space>
+                <Space>
+                  <Button 
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingItem(item);
+                      form.setFieldsValue({
+                        name: item.Name,
+                        description: item.Description
+                      });
+                      setIsModalVisible(true);
+                    }}
+                  >
+                    编辑
+                  </Button>
+                  <Button 
+                    size="small" 
+                    danger
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.ID, item.Name);
+                    }}
+                  >
+                    删除
+                  </Button>
+                </Space>
+              </div>
             </Card>
           </List.Item>
         )}
@@ -103,4 +211,4 @@ const KnowledgeBase: React.FC = () => {
   );
 };
 
-export default KnowledgeBase; 
+export default KnowledgeBase;
