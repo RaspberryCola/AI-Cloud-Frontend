@@ -1,11 +1,12 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button, List, Space, Tag, message, Pagination } from 'antd';
-import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { PlusOutlined, UploadOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { getKnowledgeDocPage, KnowledgeDocItem } from '../services/api';
 
 const KnowledgeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState<KnowledgeDocItem[]>([]);
   const [total, setTotal] = React.useState(0);
@@ -51,10 +52,22 @@ const KnowledgeDetail: React.FC = () => {
     setPageSize(pageSize);
   };
 
+  const handleBack = () => {
+    navigate('/knowledge-base');
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-bold">知识库文档列表</h2>
+        <div className="flex items-center gap-4">
+          <Button 
+            icon={<ArrowLeftOutlined />} 
+            onClick={handleBack}
+          >
+            返回
+          </Button>
+          <h2 className="text-xl font-bold">知识库文档列表</h2>
+        </div>
         <Space>
           <Button 
             type="primary" 
