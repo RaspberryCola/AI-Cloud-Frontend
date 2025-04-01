@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Table, Space, Tag, message, Checkbox, Switch } from 'antd';
-import { PlusOutlined, UploadOutlined, ArrowLeftOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
-import { getKnowledgeDocPage, KnowledgeDocItem } from '../services/api';
+import { Button, Table, Space, Tag, message, Checkbox, Switch, Modal, Upload } from 'antd';
+import { PlusOutlined, UploadOutlined, ArrowLeftOutlined, EyeOutlined, DeleteOutlined, InboxOutlined } from '@ant-design/icons';
+import { getKnowledgeDocPage, KnowledgeDocItem, importCloudFileToKnowledge, uploadFileToKnowledge } from '../services/api';
 
 const KnowledgeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,12 +39,62 @@ const KnowledgeDetail: React.FC = () => {
     fetchDocList(currentPage, pageSize);
   }, [id, currentPage, pageSize]);
 
-  const handleCreateNew = () => {
-    console.log('创建新文档');
+  const [importModalVisible, setImportModalVisible] = React.useState(false);
+  const [selectedFileId, setSelectedFileId] = React.useState<string>('');
+
+  const handleCreateNew = async (event: React.MouseEvent) => {
+    event.preventDefault();
+    showUploadModal();
   };
 
-  const handleImport = () => {
-    console.log('导入文档');
+  const uploadFile = async (file: File) => {
+    if (!id) return;
+    try {
+      const res = await uploadFileToKnowledge(id, file);
+      if (res.code === 0) {
+        message.success('上传文件成功');
+        setUploadModalVisible(false);
+        fetchDocList(currentPage, pageSize);
+      } else {
+        message.error(res.message || '上传文件失败');
+      }
+    } catch (error) {
+      message.error('上传文件失败');
+    }
+  };
+
+  const handleImport = async () => {
+    if (!id || !selectedFileId) return;
+    try {
+      const res = await importCloudFileToKnowledge({
+        file_id: selectedFileId,
+        kb_id: id
+      });
+      if (res.code === 0) {
+        message.success('导入文件成功');
+        setImportModalVisible(false);
+        fetchDocList(currentPage, pageSize);
+      } else {
+        message.error(res.message || '导入文件失败');
+      }
+    } catch (error) {
+      message.error('导入文件失败');
+    }
+  };
+
+  const [uploadModalVisible, setUploadModalVisible] = React.useState(false);
+
+  const beforeUpload = (file: File) => {
+    uploadFile(file);
+    return false; // 阻止默认上传行为
+  };
+
+  const showUploadModal = () => {
+    setUploadModalVisible(true);
+  };
+
+  const showImportModal = () => {
+    setImportModalVisible(true);
   };
 
   const handlePageChange = (page: number, pageSize: number) => {
@@ -89,7 +139,7 @@ const KnowledgeDetail: React.FC = () => {
               <Button 
                 type="primary" 
                 icon={<UploadOutlined />}
-                onClick={handleImport}
+                onClick={showImportModal}
                 className="h-8"
               >
                 导入云盘文件
@@ -205,6 +255,46 @@ const KnowledgeDetail: React.FC = () => {
           }
           ]}
         />
+
+        <Modal
+          title="上传文件"
+          visible={uploadModalVisible}
+          onCancel={() => setUploadModalVisible(false)}
+          footer={null}
+        >
+          <Upload.Dragger
+            name="file"
+            multiple={false}
+            beforeUpload={beforeUpload}
+            showUploadList={false}
+          >
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">点击或拖拽文件到此处上传</p>
+            <p className="ant-upload-hint">支持单个文件上传</p>
+          </Upload.Dragger>
+        </Modal>
+
+        <Modal
+          title="导入云盘文件"
+          visible={importModalVisible}
+          onCancel={() => setImportModalVisible(false)}
+          onOk={handleImport}
+          okText="导入"
+          cancelText="取消"
+        >
+          <div className="p-4">
+            <p className="mb-4">请选择要导入的云盘文件</p>
+            <input 
+              type="text"
+              placeholder="输入文件ID"
+              className="w-full p-2 border rounded"
+              value={selectedFileId}
+              onChange={(e) => setSelectedFileId(e.target.value)}
+            />
+          </div>
+        </Modal>
       </div>
     </div>
   );

@@ -276,3 +276,25 @@ export const getKnowledgeDocPage = async (
 ): Promise<ApiResponse<PageData<KnowledgeDocItem>>> => {
   return api.get('/knowledge/docPage', { params });
 };
+
+// 导入云盘文件到知识库
+export const importCloudFileToKnowledge = async (
+  data: { file_id: string; kb_id: string }
+): Promise<ApiResponse<null>> => {
+  return api.post('/knowledge/add', data);
+};
+
+// 上传新文件到知识库
+export const uploadFileToKnowledge = async (
+  kb_id: string,
+  file: File
+): Promise<ApiResponse<null>> => {
+  const formData = new FormData();
+  formData.append('kb_id', kb_id);
+  formData.append('file', file);
+  return api.post('/knowledge/addNew', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
