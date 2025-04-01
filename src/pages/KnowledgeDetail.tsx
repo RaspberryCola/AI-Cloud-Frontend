@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, List, Space, Tag, message, Pagination } from 'antd';
-import { PlusOutlined, UploadOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Button, Table, Space, Tag, message, Checkbox, Switch } from 'antd';
+import { PlusOutlined, UploadOutlined, ArrowLeftOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import { getKnowledgeDocPage, KnowledgeDocItem } from '../services/api';
 
 const KnowledgeDetail: React.FC = () => {
@@ -86,44 +86,97 @@ const KnowledgeDetail: React.FC = () => {
         </Space>
       </div>
 
-      <List
+      <Table
+        rowKey="ID"
         loading={loading}
         dataSource={data}
-        renderItem={(item) => (
-          <List.Item>
-            <div className="w-full flex justify-between items-center">
-              <div>
-                <div className="font-medium">{item.Title}</div>
-                <Space size="small">
-                  <Tag color={
-                    item.Status === 2 ? 'green' : 
-                    item.Status === 1 ? 'orange' : 'red'
-                  }>
-                    {item.Status === 2 ? '已完成' : 
-                     item.Status === 1 ? '处理中' : '失败'}
-                  </Tag>
-                </Space>
-              </div>
-              <Space>
-                <div className="text-gray-400 text-sm">
-                  更新时间：{new Date(item.UpdatedAt).toLocaleString()}
-                </div>
-                <Button size="small" danger>删除</Button>
+        className="bg-white rounded-lg shadow"
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: total,
+          onChange: handlePageChange,
+          showSizeChanger: true,
+          showTotal: (total) => `共 ${total} 条记录`,
+          className: "text-sm",
+          size: "small"
+        }}
+        columns={[
+          {
+            title: <Checkbox />,
+            dataIndex: 'checkbox',
+            width: 48,
+            render: () => <Checkbox />
+          },
+          {
+            title: '#',
+            dataIndex: 'index',
+            width: 60,
+            render: (_: any, __: any, index: number) => index + 1
+          },
+          {
+            title: '名称',
+            dataIndex: 'Title',
+            ellipsis: true,
+            width: 200
+          },
+          {
+            title: '修改时间',
+            dataIndex: 'UpdatedAt',
+            width: 180,
+            render: (text: string) => new Date(text).toLocaleString()
+          },
+          {
+            title: '解析状态',
+            dataIndex: 'Status',
+            width: 100,
+            render: (status: number) => (
+              <Tag color={{
+                2: 'success',
+                1: 'warning',
+                0: 'error'
+              }[status]} className="px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
+                {status === 2 ? '已完成' : 
+                 status === 1 ? '处理中' : '失败'}
+              </Tag>
+            )
+          },
+          {
+            title: '启用状态',
+            dataIndex: 'Enabled',
+            width: 100,
+            render: (enabled: boolean) => (
+              <Switch 
+                checked={enabled}
+                checkedChildren="启用" 
+                unCheckedChildren="关闭"
+              />
+            )
+          },
+          {
+            title: '操作',
+            key: 'action',
+            width: 150,
+            render: () => (
+              <Space size="small">
+                <Button 
+                  type="text" 
+                  size="small" 
+                  icon={<EyeOutlined />}
+                  className="text-blue-500 hover:text-blue-600"
+                />
+                <Button 
+                  type="text" 
+                  size="small" 
+                  icon={<DeleteOutlined />}
+                  className="text-red-500 hover:text-red-600"
+                  danger
+                />
               </Space>
-            </div>
-          </List.Item>
-        )}
+            )
+          }
+        ]}
       />
-      <div className="mt-4 flex justify-end">
-        <Pagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={total}
-          onChange={handlePageChange}
-          showSizeChanger
-          showTotal={(total) => `共 ${total} 条记录`}
-        />
-      </div>
     </div>
   );
 };
