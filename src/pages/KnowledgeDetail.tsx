@@ -58,32 +58,51 @@ const KnowledgeDetail: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      <div className="mb-6">
+      <div className="mb-4">
+        <div className="flex items-center gap-4 mb-2">
           <Button 
             icon={<ArrowLeftOutlined />} 
             onClick={handleBack}
+            className="h-8"
           >
             返回
           </Button>
-          <h2 className="text-xl font-bold">知识库文档列表</h2>
+          <div className="flex items-baseline gap-2">  
+            <h2 className="text-xl font-bold m-0">文档</h2>
+            <span className="text-sm text-gray-500">当前知识库下的所有文件</span>
+          </div>
         </div>
-        <Space>
-          <Button 
-            type="primary" 
-            icon={<UploadOutlined />}
-            onClick={handleImport}
-          >
-            导入文档
-          </Button>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />}
-            onClick={handleCreateNew}
-          >
-            新建文档
-          </Button>
-        </Space>
+      </div>
+
+        
+        <div className="flex justify-between items-center">
+          <div className="w-1/3">
+            <input 
+              type="text" 
+              placeholder="搜索文档..." 
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <Space>
+            <Button 
+              type="primary" 
+              icon={<UploadOutlined />}
+              onClick={handleImport}
+              className="h-8"
+            >
+              导入文档
+            </Button>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={handleCreateNew}
+              className="h-8"
+            >
+              新建文档
+            </Button>
+          </Space>
+        </div>
       </div>
 
       <Table
@@ -105,20 +124,20 @@ const KnowledgeDetail: React.FC = () => {
           {
             title: <Checkbox />,
             dataIndex: 'checkbox',
-            width: 48,
+            width: 30,
             render: () => <Checkbox />
           },
           {
             title: '#',
             dataIndex: 'index',
-            width: 60,
+            width: 30,
             render: (_: any, __: any, index: number) => index + 1
           },
           {
             title: '名称',
             dataIndex: 'Title',
             ellipsis: true,
-            width: 200
+            width: 400
           },
           {
             title: '修改时间',
