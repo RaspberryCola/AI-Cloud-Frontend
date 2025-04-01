@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Table, Space, Tag, message, Checkbox, Switch, Modal, Upload } from 'antd';
+import { Button, Table, Space, Tag, message, Checkbox, Switch, Modal, Upload, Breadcrumb } from 'antd';
 import { PlusOutlined, UploadOutlined, ArrowLeftOutlined, EyeOutlined, DeleteOutlined, InboxOutlined, FileOutlined, FolderOutlined } from '@ant-design/icons';
 import { getKnowledgeDocPage, KnowledgeDocItem, importCloudFileToKnowledge, uploadFileToKnowledge, getFileList, FileItem } from '../services/api';
 
@@ -42,6 +42,8 @@ const KnowledgeDetail: React.FC = () => {
   const [importModalVisible, setImportModalVisible] = React.useState(false);
   const [selectedFileId, setSelectedFileId] = React.useState<string>('');
   const [fileList, setFileList] = React.useState<FileItem[]>([]);
+  const [currentPath, setCurrentPath] = React.useState<{id: string, name: string}[]>([]);
+  const [currentParentId, setCurrentParentId] = React.useState<string | undefined>(undefined);
   const [fileLoading, setFileLoading] = React.useState(false);
 
   const handleCreateNew = async (event: React.MouseEvent) => {
@@ -98,6 +100,8 @@ const KnowledgeDetail: React.FC = () => {
   const showImportModal = () => {
     setImportModalVisible(true);
     setFileLoading(true);
+    setCurrentPath([]);
+    setCurrentParentId(undefined);
     getFileList({
       parent_id: undefined,
       page: 1,
@@ -132,12 +136,12 @@ const KnowledgeDetail: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Left Navigation */}
-      <div className="w-64 p-4 border-r border-gray-200 bg-gray-50">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-            <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="flex min-h-screen">
+      {/* 左侧导航栏 */}
+      <div className="w-60 p-4 border-r border-gray-200 bg-gray-50">
+        <div className="flex flex-col items-start mb-4 pl-2">
+          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
+            <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
@@ -154,7 +158,7 @@ const KnowledgeDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Content */}
+      {/* 右侧文件区域 */}
       <div className="flex-1 p-6 bg-gray-50">
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-4">文档</h2>
@@ -308,10 +312,56 @@ const KnowledgeDetail: React.FC = () => {
           onOk={handleImport}
           okText="导入"
           cancelText="取消"
-          width={800}
+          width={1000}
         >
           <div className="p-4">
-            <p className="mb-4">请选择要导入的云盘文件</p>
+            <Breadcrumb className="mb-4">
+              <Breadcrumb.Item>
+                <a onClick={() => {
+                  setCurrentPath([]);
+                  setCurrentParentId(undefined);
+                  setFileLoading(true);
+                  getFileList({
+                    parent_id: undefined,
+                    page: 1,
+                    page_size: 999,
+                    sort: 'name:asc'
+                  }).then((res) => {
+                    if (res.code === 0) {
+                      setFileList(res.data.list);
+                    } else {
+                      message.error(res.message || '获取文件列表失败');
+                    }
+                  }).finally(() => {
+                    setFileLoading(false);
+                  });
+                }}>根目录</a>
+              </Breadcrumb.Item>
+              {currentPath.map((item, index) => (
+                <Breadcrumb.Item key={item.id}>
+                  <a onClick={() => {
+                    const newPath = currentPath.slice(0, index + 1);
+                    setCurrentPath(newPath);
+                    setCurrentParentId(item.id);
+                    setFileLoading(true);
+                    getFileList({
+                      parent_id: item.id,
+                      page: 1,
+                      page_size: 999,
+                      sort: 'name:asc'
+                    }).then((res) => {
+                      if (res.code === 0) {
+                        setFileList(res.data.list);
+                      } else {
+                        message.error(res.message || '获取文件列表失败');
+                      }
+                    }).finally(() => {
+                      setFileLoading(false);
+                    });
+                  }}>{item.name}</a>
+                </Breadcrumb.Item>
+              ))}
+            </Breadcrumb>
             <Table
               rowKey="ID"
               loading={fileLoading}
@@ -329,10 +379,33 @@ const KnowledgeDetail: React.FC = () => {
                 {
                   title: '名称',
                   dataIndex: 'Name',
+                  width: 500,
                   render: (text: string, record: FileItem) => (
                     <div className="flex items-center">
                       {record.IsDir ? (
-                        <FolderOutlined className="mr-2 text-yellow-500" />
+                        <FolderOutlined 
+                          className="mr-2 text-yellow-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentPath([...currentPath, {id: record.ID, name: record.Name}]);
+                            setCurrentParentId(record.ID);
+                            setFileLoading(true);
+                            getFileList({
+                              parent_id: record.ID,
+                              page: 1,
+                              page_size: 999,
+                              sort: 'name:asc'
+                            }).then((res) => {
+                              if (res.code === 0) {
+                                setFileList(res.data.list);
+                              } else {
+                                message.error(res.message || '获取文件列表失败');
+                              }
+                            }).finally(() => {
+                              setFileLoading(false);
+                            });
+                          }}
+                        />
                       ) : (
                         <FileOutlined className="mr-2 text-blue-500" />
                       )}
@@ -343,12 +416,14 @@ const KnowledgeDetail: React.FC = () => {
                 {
                   title: '大小',
                   dataIndex: 'Size',
+                  width: 150,
                   render: (size: number, record: FileItem) => (
                     record.IsDir ? '-' : formatFileSize(size)
                   )
                 },
                 {
                   title: '修改时间',
+                  width: 200,
                   dataIndex: 'UpdatedAt',
                   render: (text: string) => new Date(text).toLocaleString()
                 }
