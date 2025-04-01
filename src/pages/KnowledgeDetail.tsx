@@ -57,70 +57,79 @@ const KnowledgeDetail: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-      <div className="mb-4">
-        <div className="flex items-center gap-4 mb-2">
-          <Button 
-            icon={<ArrowLeftOutlined />} 
-            onClick={handleBack}
-            className="h-8"
-          >
-            返回
-          </Button>
-          <div className="flex items-baseline gap-2">  
-            <h2 className="text-xl font-bold m-0">文档</h2>
-            <span className="text-sm text-gray-500">当前知识库下的所有文件</span>
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Left Navigation */}
+      <div className="w-64 p-4 border-r border-gray-200 bg-gray-50">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
+            <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <p className="text-sm text-gray-500 text-center">知识库文档管理</p>
+        </div>
+
+        <div className="space-y-1">
+          <div className="px-3 py-2 bg-blue-50 text-blue-600 rounded-md font-medium">
+            文档
+          </div>
+          <div className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-md cursor-pointer">
+            召回测试
           </div>
         </div>
       </div>
 
-        
-        <div className="flex justify-between items-center">
-          <div className="w-1/3">
-            <input 
-              type="text" 
-              placeholder="搜索文档..." 
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <Space>
-            <Button 
-              type="primary" 
-              icon={<UploadOutlined />}
-              onClick={handleImport}
-              className="h-8"
-            >
-              导入文档
-            </Button>
-            <Button 
-              type="primary" 
-              icon={<PlusOutlined />}
-              onClick={handleCreateNew}
-              className="h-8"
-            >
-              新建文档
-            </Button>
-          </Space>
-        </div>
-      </div>
+      {/* Right Content */}
+      <div className="flex-1 p-6 bg-gray-50">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-4">文档</h2>
+          
+          <div className="flex justify-between items-center mb-4">
+            <Space>
+              <Button 
+                type="primary" 
+                icon={<UploadOutlined />}
+                onClick={handleImport}
+                className="h-8"
+              >
+                导入云盘文件
+              </Button>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />}
+                onClick={handleCreateNew}
+                className="h-8"
+              >
+                上传新文件
+              </Button>
+            </Space>
 
-      <Table
-        rowKey="ID"
-        loading={loading}
-        dataSource={data}
-        className="bg-white rounded-lg shadow"
-        pagination={{
-          current: currentPage,
-          pageSize: pageSize,
-          total: total,
-          onChange: handlePageChange,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条记录`,
-          className: "text-sm",
-          size: "small"
-        }}
-        columns={[
+            <div className="w-1/3">
+              <input 
+                type="text" 
+                placeholder="搜索文档..." 
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Table
+          rowKey="ID"
+          loading={loading}
+          dataSource={data}
+          className="bg-white rounded-lg shadow"
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: total,
+            onChange: handlePageChange,
+            showSizeChanger: true,
+            showTotal: (total) => `共 ${total} 条记录`,
+            className: "text-sm",
+            size: "small"
+          }}
+          columns={[
           {
             title: <Checkbox />,
             dataIndex: 'checkbox',
@@ -194,8 +203,9 @@ const KnowledgeDetail: React.FC = () => {
               </Space>
             )
           }
-        ]}
-      />
+          ]}
+        />
+      </div>
     </div>
   );
 };
