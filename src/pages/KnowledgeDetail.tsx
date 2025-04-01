@@ -1,39 +1,54 @@
 import React from 'react';
-import { Button, List, Space, Tag } from 'antd';
+import { useParams } from 'react-router-dom';
+import { Button, List, Space, Tag, message, Pagination } from 'antd';
 import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
-
-interface DocumentItem {
-  id: string;
-  name: string;
-  status: 'processing' | 'completed' | 'failed';
-  enabled: boolean;
-  updateTime: string;
-}
-
-const mockDocuments: DocumentItem[] = [
-  {
-    id: '1',
-    name: '项目管理指南.pdf',
-    status: 'completed',
-    enabled: true,
-    updateTime: '2025-03-30',
-  },
-  {
-    id: '2',
-    name: '前端规范.docx',
-    status: 'processing',
-    enabled: false,
-    updateTime: '2025-03-28',
-  },
-];
+import { getKnowledgeDocPage, KnowledgeDocItem } from '../services/api';
 
 const KnowledgeDetail: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const [loading, setLoading] = React.useState(false);
+  const [data, setData] = React.useState<KnowledgeDocItem[]>([]);
+  const [total, setTotal] = React.useState(0);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(5);
+
+  const fetchDocList = async (page: number, pageSize: number) => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const res = await getKnowledgeDocPage({
+        page,
+        page_size: pageSize,
+        kb_id: id
+      });
+      if (res.code === 0) {
+        setData(res.data.list);
+        setTotal(res.data.total);
+      } else {
+        message.error(res.message || '获取文档列表失败');
+      }
+    } catch (error) {
+      message.error('获取文档列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchDocList(currentPage, pageSize);
+  }, [id, currentPage, pageSize]);
+
   const handleCreateNew = () => {
     console.log('创建新文档');
   };
 
   const handleImport = () => {
     console.log('导入文档');
+  };
+
+  const handlePageChange = (page: number, pageSize: number) => {
+    setCurrentPage(page);
+    setPageSize(pageSize);
   };
 
   return (
@@ -59,28 +74,26 @@ const KnowledgeDetail: React.FC = () => {
       </div>
 
       <List
-        dataSource={mockDocuments}
+        loading={loading}
+        dataSource={data}
         renderItem={(item) => (
           <List.Item>
             <div className="w-full flex justify-between items-center">
               <div>
-                <div className="font-medium">{item.name}</div>
+                <div className="font-medium">{item.Title}</div>
                 <Space size="small">
                   <Tag color={
-                    item.status === 'completed' ? 'green' : 
-                    item.status === 'processing' ? 'orange' : 'red'
+                    item.Status === 2 ? 'green' : 
+                    item.Status === 1 ? 'orange' : 'red'
                   }>
-                    {item.status === 'completed' ? '已完成' : 
-                     item.status === 'processing' ? '处理中' : '失败'}
-                  </Tag>
-                  <Tag color={item.enabled ? 'blue' : 'default'}>
-                    {item.enabled ? '已启用' : '已禁用'}
+                    {item.Status === 2 ? '已完成' : 
+                     item.Status === 1 ? '处理中' : '失败'}
                   </Tag>
                 </Space>
               </div>
               <Space>
                 <div className="text-gray-400 text-sm">
-                  更新时间：{item.updateTime}
+                  更新时间：{new Date(item.UpdatedAt).toLocaleString()}
                 </div>
                 <Button size="small" danger>删除</Button>
               </Space>
@@ -88,6 +101,16 @@ const KnowledgeDetail: React.FC = () => {
           </List.Item>
         )}
       />
+      <div className="mt-4 flex justify-end">
+        <Pagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onChange={handlePageChange}
+          showSizeChanger
+          showTotal={(total) => `共 ${total} 条记录`}
+        />
+      </div>
     </div>
   );
 };

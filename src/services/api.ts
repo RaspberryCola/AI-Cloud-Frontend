@@ -225,6 +225,25 @@ interface KnowledgeListParams {
   name?: string;
 }
 
+// 知识库文档接口类型
+export interface KnowledgeDocItem {
+  ID: string;
+  UserID: number;
+  KnowledgeBaseID: string;
+  FileID: string;
+  Title: string;
+  DocType: string;
+  Status: number;
+  CreatedAt: string;
+  UpdatedAt: string;
+}
+
+interface KnowledgeDocListParams {
+  page: number;
+  page_size: number;
+  kb_id: string;
+}
+
 // 知识库API
 export const getKnowledgeList = async (
   params: KnowledgeListParams
@@ -249,4 +268,11 @@ export const deleteKnowledge = async (
   id: string
 ): Promise<ApiResponse<null>> => {
   return api.delete(`/knowledge/delete/${id}`);
+};
+
+// 知识库文档API
+export const getKnowledgeDocPage = async (
+  params: KnowledgeDocListParams
+): Promise<ApiResponse<PageData<KnowledgeDocItem>>> => {
+  return api.get('/knowledge/docPage', { params });
 };
