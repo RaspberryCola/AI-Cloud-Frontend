@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Table, Space, Tag, message, Checkbox, Switch, Modal, Upload } from 'antd';
-import { PlusOutlined, UploadOutlined, ArrowLeftOutlined, EyeOutlined, DeleteOutlined, InboxOutlined } from '@ant-design/icons';
-import { getKnowledgeDocPage, KnowledgeDocItem, importCloudFileToKnowledge, uploadFileToKnowledge } from '../services/api';
+import { PlusOutlined, UploadOutlined, ArrowLeftOutlined, EyeOutlined, DeleteOutlined, InboxOutlined, FileOutlined, FolderOutlined } from '@ant-design/icons';
+import { getKnowledgeDocPage, KnowledgeDocItem, importCloudFileToKnowledge, uploadFileToKnowledge, getFileList, FileItem } from '../services/api';
 
 const KnowledgeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +41,8 @@ const KnowledgeDetail: React.FC = () => {
 
   const [importModalVisible, setImportModalVisible] = React.useState(false);
   const [selectedFileId, setSelectedFileId] = React.useState<string>('');
+  const [fileList, setFileList] = React.useState<FileItem[]>([]);
+  const [fileLoading, setFileLoading] = React.useState(false);
 
   const handleCreateNew = async (event: React.MouseEvent) => {
     event.preventDefault();
@@ -95,6 +97,21 @@ const KnowledgeDetail: React.FC = () => {
 
   const showImportModal = () => {
     setImportModalVisible(true);
+    setFileLoading(true);
+    getFileList({
+      parent_id: undefined,
+      page: 1,
+      page_size: 999,
+      sort: 'name:asc'
+    }).then((res) => {
+      if (res.code === 0) {
+        setFileList(res.data.list);
+      } else {
+        message.error(res.message || '获取文件列表失败');
+      }
+    }).finally(() => {
+      setFileLoading(false);
+    });
   };
 
   const handlePageChange = (page: number, pageSize: number) => {
@@ -104,6 +121,14 @@ const KnowledgeDetail: React.FC = () => {
 
   const handleBack = () => {
     navigate('/knowledge-base');
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   return (
@@ -283,15 +308,51 @@ const KnowledgeDetail: React.FC = () => {
           onOk={handleImport}
           okText="导入"
           cancelText="取消"
+          width={800}
         >
           <div className="p-4">
             <p className="mb-4">请选择要导入的云盘文件</p>
-            <input 
-              type="text"
-              placeholder="输入文件ID"
-              className="w-full p-2 border rounded"
-              value={selectedFileId}
-              onChange={(e) => setSelectedFileId(e.target.value)}
+            <Table
+              rowKey="ID"
+              loading={fileLoading}
+              dataSource={fileList}
+              pagination={false}
+              scroll={{ y: 400 }}
+              rowSelection={{
+                type: 'radio',
+                selectedRowKeys: selectedFileId ? [selectedFileId] : [],
+                onChange: (selectedRowKeys) => {
+                  setSelectedFileId(selectedRowKeys[0] as string);
+                }
+              }}
+              columns={[
+                {
+                  title: '名称',
+                  dataIndex: 'Name',
+                  render: (text: string, record: FileItem) => (
+                    <div className="flex items-center">
+                      {record.IsDir ? (
+                        <FolderOutlined className="mr-2 text-yellow-500" />
+                      ) : (
+                        <FileOutlined className="mr-2 text-blue-500" />
+                      )}
+                      {text}
+                    </div>
+                  )
+                },
+                {
+                  title: '大小',
+                  dataIndex: 'Size',
+                  render: (size: number, record: FileItem) => (
+                    record.IsDir ? '-' : formatFileSize(size)
+                  )
+                },
+                {
+                  title: '修改时间',
+                  dataIndex: 'UpdatedAt',
+                  render: (text: string) => new Date(text).toLocaleString()
+                }
+              ]}
             />
           </div>
         </Modal>
