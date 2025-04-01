@@ -2,16 +2,31 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Table, Space, Tag, message, Checkbox, Switch, Modal, Upload, Breadcrumb } from 'antd';
 import { PlusOutlined, UploadOutlined, ArrowLeftOutlined, EyeOutlined, DeleteOutlined, InboxOutlined, FileOutlined, FolderOutlined } from '@ant-design/icons';
-import { getKnowledgeDocPage, KnowledgeDocItem, importCloudFileToKnowledge, uploadFileToKnowledge, getFileList, FileItem } from '../services/api';
+import { getKnowledgeDocPage, KnowledgeDocItem, importCloudFileToKnowledge, uploadFileToKnowledge, getFileList, FileItem, getKnowledgeDetail } from '../services/api';
 
 const KnowledgeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
+  const [kbName, setKbName] = React.useState('');
+  const [kbDescription, setKbDescription] = React.useState('');
   const [data, setData] = React.useState<KnowledgeDocItem[]>([]);
   const [total, setTotal] = React.useState(0);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(5);
+
+  const fetchKbDetail = async () => {
+    if (!id) return;
+    try {
+      const res = await getKnowledgeDetail(id);
+      if (res.code === 0) {
+        setKbName(res.data.Name || '');
+        setKbDescription(res.data.Description || '');
+      }
+    } catch (error) {
+      console.error('获取知识库详情失败', error);
+    }
+  };
 
   const fetchDocList = async (page: number, pageSize: number) => {
     if (!id) return;
@@ -36,6 +51,7 @@ const KnowledgeDetail: React.FC = () => {
   };
 
   React.useEffect(() => {
+    fetchKbDetail();
     fetchDocList(currentPage, pageSize);
   }, [id, currentPage, pageSize]);
 
@@ -145,7 +161,7 @@ const KnowledgeDetail: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <p className="text-sm text-gray-500 text-center">知识库文档管理</p>
+          <p className="text-sm text-gray-500 text-center">{kbDescription || '知识库文档管理'}</p>
         </div>
 
         <div className="space-y-1">
@@ -161,7 +177,15 @@ const KnowledgeDetail: React.FC = () => {
       {/* 右侧文件区域 */}
       <div className="flex-1 p-6 bg-gray-50">
         <div className="mb-6">
-          <h2 className="text-xl font-bold mb-4">文档</h2>
+          <h2 className="text-xl font-bold mb-4">
+            <span 
+              className="text-gray-800 hover:bg-gray-100 cursor-pointer px-2 py-1 rounded transition-colors"
+              onClick={handleBack}
+            >
+              根目录
+            </span>
+            - {kbName || '加载中...'}
+          </h2>
           
           <div className="flex justify-between items-center mb-4">
             <Space>

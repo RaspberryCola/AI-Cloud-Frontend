@@ -277,6 +277,16 @@ export const getKnowledgeDocPage = async (
   return api.get('/knowledge/docPage', { params });
 };
 
+export const getKnowledgeDetail = async (
+  id: string
+): Promise<ApiResponse<KnowledgeItem>> => {
+  return api.get('/knowledge/detail', {
+    params: {
+      kb_id: id
+    }
+  });
+};
+
 // 导入云盘文件到知识库
 export const importCloudFileToKnowledge = async (
   data: { file_id: string; kb_id: string }
