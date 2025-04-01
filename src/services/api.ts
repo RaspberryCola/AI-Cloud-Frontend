@@ -308,3 +308,27 @@ export const uploadFileToKnowledge = async (
     },
   });
 };
+
+// 召回测试接口
+interface RetrieveRequest {
+  kb_id: string;
+  query: string;
+  top_k: number;
+}
+
+export interface RetrieveItem {
+  id: string;
+  content: string;
+  kb_id: string;
+  document_id: string;
+  document_name: string;
+  index: number;
+  embeddings: any;
+  score: number;
+}
+
+export const retrieveKnowledge = async (
+  data: RetrieveRequest
+): Promise<ApiResponse<RetrieveItem[]>> => {
+  return api.post('/knowledge/retrieve', data);
+};

@@ -1,8 +1,11 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Table, Space, Tag, message, Checkbox, Switch, Modal, Upload, Breadcrumb } from 'antd';
+import { Button, Table, Space, Tag, message, Checkbox, Switch, Modal, Upload, Breadcrumb, Input, Card, Typography } from 'antd';
 import { PlusOutlined, UploadOutlined, ArrowLeftOutlined, EyeOutlined, DeleteOutlined, InboxOutlined, FileOutlined, FolderOutlined } from '@ant-design/icons';
-import { getKnowledgeDocPage, KnowledgeDocItem, importCloudFileToKnowledge, uploadFileToKnowledge, getFileList, FileItem, getKnowledgeDetail } from '../services/api';
+import { getKnowledgeDocPage, KnowledgeDocItem, importCloudFileToKnowledge, uploadFileToKnowledge, getFileList, FileItem, getKnowledgeDetail, retrieveKnowledge, RetrieveItem } from '../services/api';
+
+const { TextArea } = Input;
+const { Text } = Typography;
 
 const KnowledgeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +17,11 @@ const KnowledgeDetail: React.FC = () => {
   const [total, setTotal] = React.useState(0);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(5);
+  const [activeTab, setActiveTab] = React.useState('documents');
+  const [queryText, setQueryText] = React.useState('');
+  const [topK, setTopK] = React.useState(3);
+  const [retrieveResults, setRetrieveResults] = React.useState<RetrieveItem[]>([]);
+  const [retrieveLoading, setRetrieveLoading] = React.useState(false);
 
   const fetchKbDetail = async () => {
     if (!id) return;
@@ -165,59 +173,66 @@ const KnowledgeDetail: React.FC = () => {
         </div>
 
         <div className="space-y-1">
-          <div className="px-3 py-2 bg-blue-50 text-blue-600 rounded-md font-medium">
+          <div 
+            className={`px-3 py-2 rounded-md cursor-pointer ${activeTab === 'documents' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
+            onClick={() => setActiveTab('documents')}
+          >
             文档
           </div>
-          <div className="px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-md cursor-pointer">
+          <div 
+            className={`px-3 py-2 rounded-md cursor-pointer ${activeTab === 'retrieve' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
+            onClick={() => setActiveTab('retrieve')}
+          >
             召回测试
           </div>
         </div>
       </div>
 
-      {/* 右侧文件区域 */}
+      {/* 右侧内容区域 */}
       <div className="flex-1 p-6 bg-gray-50">
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-4">
             <span 
-              className="text-gray-800 hover:bg-gray-100 cursor-pointer px-2 py-1 rounded transition-colors"
+              className="text-gray-800 hover:bg-gray-100 cursor-pointer rounded transition-colors"
               onClick={handleBack}
             >
-              根目录
+              根目录 
             </span>
-            - {kbName || '加载中...'}
+            &nbsp;/ {kbName || '加载中...'}
           </h2>
           
-          <div className="flex justify-between items-center mb-4">
-            <Space>
-              <Button 
-                type="primary" 
-                icon={<UploadOutlined />}
-                onClick={showImportModal}
-                className="h-8"
-              >
-                导入云盘文件
-              </Button>
-              <Button 
-                type="primary" 
-                icon={<PlusOutlined />}
-                onClick={handleCreateNew}
-                className="h-8"
-              >
-                上传新文件
-              </Button>
-            </Space>
+          {activeTab === 'documents' ? (
+            <>
+              <div className="flex justify-between items-center mb-4">
+                <Space>
+                  <Button 
+                    type="primary" 
+                    icon={<UploadOutlined />}
+                    onClick={showImportModal}
+                    className="h-8"
+                  >
+                    导入云盘文件
+                  </Button>
+                  <Button 
+                    type="primary" 
+                    icon={<PlusOutlined />}
+                    onClick={handleCreateNew}
+                    className="h-8"
+                  >
+                    上传新文件
+                  </Button>
+                </Space>
 
-            <div className="w-1/3">
-              <input 
-                type="text" 
-                placeholder="搜索文档..." 
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
+                <div className="w-1/3">
+                  <input 
+                    type="text" 
+                    placeholder="搜索文档..." 
+                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
 
-        <Table
+              <Table
           rowKey="ID"
           loading={loading}
           dataSource={data}
@@ -309,12 +324,110 @@ const KnowledgeDetail: React.FC = () => {
           ]}
         />
 
-        <Modal
-          title="上传文件"
-          visible={uploadModalVisible}
-          onCancel={() => setUploadModalVisible(false)}
-          footer={null}
-        >
+            </>
+          ) : (
+            <div className="flex h-full">
+              {/* 左侧查询区域 */}
+              <div className="w-1/2 pr-4">
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium mb-2">召回测试</h3>
+                  <p className="text-gray-500 mb-4">根据给定的查询文本测试知识的召回效果。</p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">召回数量 (top_k)</label>
+                  <Input 
+                    type="number" 
+                    min={1} 
+                    max={10}
+                    value={topK}
+                    onChange={(e) => setTopK(Number(e.target.value))}
+                    className="w-20"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">查询文本</label>
+                  <TextArea
+                    rows={8}
+                    value={queryText}
+                    onChange={(e) => setQueryText(e.target.value)}
+                    placeholder="请输入查询文本..."
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button 
+                    type="primary" 
+                    loading={retrieveLoading}
+                    onClick={async () => {
+                      if (!id || !queryText) {
+                        message.warning('请输入查询文本');
+                        return;
+                      }
+                      try {
+                        setRetrieveLoading(true);
+                        const res = await retrieveKnowledge({
+                          kb_id: id,
+                          query: queryText,
+                          top_k: topK
+                        });
+                        if (res.code === 0) {
+                          setRetrieveResults(res.data);
+                        } else {
+                          message.error(res.message || '召回测试失败');
+                        }
+                      } catch (error) {
+                        message.error('召回测试失败');
+                      } finally {
+                        setRetrieveLoading(false);
+                      }
+                    }}
+                  >
+                    测试
+                  </Button>
+                </div>
+              </div>
+
+              {/* 右侧结果区域 */}
+              <div className="w-1/2 pl-4">
+                <div className="mb-4">
+                  <h3 className="text-lg font-medium">
+                    {retrieveResults.length > 0 ? `${retrieveResults.length}个召回段落` : '召回结果'}
+                  </h3>
+                </div>
+
+                <div className="space-y-4">
+                  {retrieveResults.map((item, index) => (
+                    <Card key={item.id} className="shadow-sm">
+                      <div className="flex justify-between items-start mb-2">
+                        <Text strong>Chunk-{String(index + 1).padStart(2, '0')}</Text>
+                        <Text type="secondary">得分: {item.score.toFixed(4)}</Text>
+                      </div>
+                      <div className="mb-2">
+                        <Text>{item.content}</Text>
+                      </div>
+                      <div>
+                        <Text type="secondary" className="text-sm">
+                          {item.document_name} / index-{item.index}
+                        </Text>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {activeTab === 'documents' && (
+          <Modal
+            title="上传文件"
+            open={uploadModalVisible}
+            onCancel={() => setUploadModalVisible(false)}
+            footer={null}
+          >
           <Upload.Dragger
             name="file"
             multiple={false}
@@ -327,11 +440,12 @@ const KnowledgeDetail: React.FC = () => {
             <p className="ant-upload-text">点击或拖拽文件到此处上传</p>
             <p className="ant-upload-hint">支持单个文件上传</p>
           </Upload.Dragger>
-        </Modal>
+          </Modal>
+        )}
 
         <Modal
           title="导入云盘文件"
-          visible={importModalVisible}
+          open={importModalVisible}
           onCancel={() => setImportModalVisible(false)}
           onOk={handleImport}
           okText="导入"
