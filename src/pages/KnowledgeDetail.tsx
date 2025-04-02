@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Space, message, Input } from 'antd';
 import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import { getKnowledgeDocPage, importCloudFileToKnowledge, uploadFileToKnowledge, getKnowledgeDetail, KnowledgeDocItem } from '../services/api'; // Import KnowledgeDocItem from api.ts
-// Remove the incorrect import below if it exists, otherwise this SEARCH block won't match. Let's assume it doesn't exist based on the previous error message context.
+//import { KnowledgeDocItem } from '../types/apiResponse';
 import DocumentList from '../components/KnowledgeDetail/DocumentList';
 import RetrieveTest from '../components/KnowledgeDetail/RetrieveTest';
 import KnowledgeChat from '../components/KnowledgeDetail/KnowledgeChat'; // Import the new chat component
@@ -124,7 +124,7 @@ const KnowledgeDetail: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex">
       {/* 左侧导航栏 */}
       <div className="w-60 p-4 border-r border-gray-200 bg-gray-50">
         <div className="flex flex-col items-start mb-4 pl-2">

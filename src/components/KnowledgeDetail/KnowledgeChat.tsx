@@ -121,9 +121,9 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] border border-gray-300 rounded-lg shadow-sm bg-white">
+    <div className="flex flex-col h-[calc(100vh-300px)] border border-gray-300 rounded-lg shadow-sm bg-white">
       {/* Message Display Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white rounded-lg">
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -135,10 +135,10 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
               <Avatar icon={<RobotOutlined />} className="mr-2 bg-blue-500" />
             )}
             <div
-              className={`w-1/5 md:w-2/5  px-3 py-2 rounded-lg shadow ${
+              className={`max-w-[80%] md:max-w-[45%] inline-flex px-3 py-2 rounded-lg shadow ${
                 msg.sender === 'user'
-                  ? 'bg-green-100 text-gray-800'
-                  : 'bg-white text-gray-800'
+                  ? 'bg-green-200 text-gray-800'
+                  : 'bg-gray-200 text-gray-800'
               }`}
             >
               <p className="text-sm whitespace-pre-wrap">{msg.text}</p> 
@@ -150,12 +150,13 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
         ))}
         {isLoading && (
           <div className="flex justify-start items-center">
-             <Avatar icon={<RobotOutlined />} className="mr-2 bg-blue-500" />
+            <Avatar icon={<RobotOutlined />} className="mr-2 bg-blue-500" />
             <Spin size="small" />
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
+
 
       {/* Input Area */}
       <div className="p-4 border-t border-gray-200 bg-white">

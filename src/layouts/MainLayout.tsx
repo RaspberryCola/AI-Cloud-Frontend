@@ -85,7 +85,7 @@ const MainLayout: React.FC = () => {
           />
         </div>
       </Header>
-      <Content className="p-6">
+      <Content className="p-6 border-r border-gray-200 bg-gray-50">
         <Outlet />
       </Content>
     </Layout>
