@@ -7,7 +7,7 @@ import Register from './pages/Register';
 import CloudDrive from './pages/CloudDrive';
 import KnowledgeBase from './pages/KnowledgeBase';
 import KnowledgeDetail from './pages/KnowledgeDetail';
-import AIReader from './pages/AIReader';
+import Agent from './pages/Agent';
 import { RootState } from './store';
 
 const App: React.FC = () => {
@@ -24,7 +24,7 @@ const App: React.FC = () => {
           <Route path="cloud-drive/*" element={<CloudDrive />} />
           <Route path="knowledge-base" element={<KnowledgeBase />} />
           <Route path="knowledge-base/:id" element={<KnowledgeDetail />} />
-          <Route path="ai-reader" element={<AIReader />} />
+          <Route path="agent" element={<Agent />} />
         </Route>
       </Routes>
     </Router>

@@ -39,9 +39,9 @@ const MainLayout: React.FC = () => {
       label: '知识库',
     },
     {
-      key: '/ai-reader',
+      key: '/agent',
       icon: <ReadOutlined />,
-      label: 'AI阅读',
+      label: 'Agent',
     },
   ];
 
@@ -63,16 +63,17 @@ const MainLayout: React.FC = () => {
   return (
     <Layout className="min-h-screen">
       <Header className="px-0 bg-white">
-        <div className="flex items-center justify-between px-6">
+        <div className="flex items-center justify-between px-6 w-full">
           {/* 左侧部分：Logo 和主菜单 */}
-          <div className="flex items-center">
-            <div className="text-xl font-bold mr-8">小鱼快传2.0</div>
+          <div className="flex items-center flex-1">
+            <div className="text-xl font-bold mr-8 whitespace-nowrap flex-shrink-0">小鱼快传2.0</div>
             <Menu
               mode="horizontal"
               selectedKeys={[location.pathname]}
               items={mainMenuItems}
               onClick={({ key }) => handleMenuClick(key)}
-              className="border-0"
+              className="border-0 flex-grow"
+              style={{ overflow: 'visible', whiteSpace: 'nowrap', minWidth: 'auto' }}
             />
           </div>
           {/* 右侧部分：用户菜单 */}
@@ -92,4 +93,4 @@ const MainLayout: React.FC = () => {
   );
 };
 
-export default MainLayout; 
+export default MainLayout;
