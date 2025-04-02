@@ -2,6 +2,7 @@ import React from 'react';
 import { Input, Button, Spin, Avatar, message as antdMessage } from 'antd';
 import { SendOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
 import { knowledgeChatStream } from '../../services/api';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -141,7 +142,9 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
                   : 'bg-gray-200 text-gray-800'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{msg.text}</p> 
+              <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown>{msg.text}</ReactMarkdown>
+              </div>
             </div>
             {msg.sender === 'user' && (
               <Avatar icon={<UserOutlined />} className="ml-2" />
