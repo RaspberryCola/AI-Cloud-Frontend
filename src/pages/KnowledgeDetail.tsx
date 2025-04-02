@@ -2,10 +2,11 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Space, message, Input } from 'antd';
 import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
-import { getKnowledgeDocPage, importCloudFileToKnowledge, uploadFileToKnowledge, getKnowledgeDetail } from '../services/api';
-import { KnowledgeDocItem } from '../types/apiResponse';
+import { getKnowledgeDocPage, importCloudFileToKnowledge, uploadFileToKnowledge, getKnowledgeDetail, KnowledgeDocItem } from '../services/api'; // Import KnowledgeDocItem from api.ts
+// Remove the incorrect import below if it exists, otherwise this SEARCH block won't match. Let's assume it doesn't exist based on the previous error message context.
 import DocumentList from '../components/KnowledgeDetail/DocumentList';
 import RetrieveTest from '../components/KnowledgeDetail/RetrieveTest';
+import KnowledgeChat from '../components/KnowledgeDetail/KnowledgeChat'; // Import the new chat component
 import ImportModal from '../components/KnowledgeDetail/ImportModal';
 import UploadModal from '../components/KnowledgeDetail/UploadModal';
 
@@ -19,7 +20,7 @@ const KnowledgeDetail: React.FC = () => {
   const [total, setTotal] = React.useState(0);
   const [currentPage, setCurrentPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(5);
-  const [activeTab, setActiveTab] = React.useState('documents');
+  const [activeTab, setActiveTab] = React.useState('documents'); // Default tab
   const [importModalVisible, setImportModalVisible] = React.useState(false);
   const [uploadModalVisible, setUploadModalVisible] = React.useState(false);
   const [selectedFileId, setSelectedFileId] = React.useState('');
@@ -148,6 +149,12 @@ const KnowledgeDetail: React.FC = () => {
           >
             召回测试
           </div>
+          <div 
+            className={`px-3 py-2 rounded-md cursor-pointer ${activeTab === 'chat' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
+            onClick={() => setActiveTab('chat')}
+          >
+            知识库对话
+          </div>
         </div>
       </div>
 
@@ -203,8 +210,10 @@ const KnowledgeDetail: React.FC = () => {
                 onPageChange={handlePageChange}
               />
             </>
-          ) : (
+          ) : activeTab === 'retrieve' ? (
             <RetrieveTest kbId={id!} />
+          ) : (
+            <KnowledgeChat kbId={id!} /> // Render the chat component
           )}
         </div>
 

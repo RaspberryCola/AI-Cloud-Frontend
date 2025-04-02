@@ -2,10 +2,13 @@ import React from 'react';
 import { Modal, Upload } from 'antd';
 import { InboxOutlined } from '@ant-design/icons';
 
+import { RcFile } from 'antd/es/upload';
+
 interface UploadModalProps {
   visible: boolean;
   onCancel: () => void;
-  beforeUpload: (file: File) => boolean;
+  // Allow boolean, Promise<boolean>, or Promise<File> as per antd UploadProps['beforeUpload']
+  beforeUpload: (file: RcFile, FileList: RcFile[]) => boolean | Promise<boolean | RcFile | void> | string;
 }
 
 const UploadModal: React.FC<UploadModalProps> = ({
@@ -23,7 +26,8 @@ const UploadModal: React.FC<UploadModalProps> = ({
       <Upload.Dragger
         name="file"
         multiple={false}
-        beforeUpload={beforeUpload}
+        // Pass the beforeUpload prop directly
+        beforeUpload={beforeUpload as any} // Use type assertion temporarily if strict checks complain, antd types can be complex
         showUploadList={false}
       >
         <p className="ant-upload-drag-icon">

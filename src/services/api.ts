@@ -332,3 +332,44 @@ export const retrieveKnowledge = async (
 ): Promise<ApiResponse<RetrieveItem[]>> => {
   return api.post('/knowledge/retrieve', data);
 };
+
+// 知识库对话流式接口
+interface KnowledgeChatStreamRequest {
+  kbs: string[];
+  query: string;
+}
+
+// Note: The response is a stream, so we don't define a specific response type here.
+// The function will return the Response object directly for stream processing.
+export const knowledgeChatStream = async (
+  data: KnowledgeChatStreamRequest
+): Promise<Response> => {
+  const authData = localStorage.getItem('auth');
+  let headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  if (authData) {
+    const { token } = JSON.parse(authData);
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
+  const response = await fetch('http://localhost:8080/api/knowledge/stream', {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    // Handle HTTP errors (e.g., 4xx, 5xx)
+    const errorData = await response.json().catch(() => ({ message: 'Failed to fetch stream' }));
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error('Response body is null');
+  }
+
+  return response; // Return the raw Response object
+};
