@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Modal, Table, Breadcrumb, message } from 'antd';
 import { FileOutlined, FolderOutlined } from '@ant-design/icons';
 import type { FileItem } from '../../services/api';
@@ -25,6 +25,12 @@ const ImportModal: React.FC<ImportModalProps> = ({
   const [currentPath, setCurrentPath] = React.useState<{id: string, name: string}[]>([]);
   const [currentParentId, setCurrentParentId] = React.useState<string | undefined>(undefined);
   const [fileLoading, setFileLoading] = React.useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      fetchFileList(currentParentId);
+    }
+  }, [visible, currentParentId]);
 
   const fetchFileList = async (parentId?: string) => {
     setFileLoading(true);
@@ -59,7 +65,23 @@ const ImportModal: React.FC<ImportModalProps> = ({
     >
       <div className="p-4">
         <Breadcrumb className="mb-4">
-          {/* Breadcrumb 内容 */}
+          <Breadcrumb.Item onClick={() => {
+            setCurrentParentId(undefined);
+            setCurrentPath([]);
+          }}>
+            全部文件
+          </Breadcrumb.Item>
+          {currentPath.map((item) => (
+            <Breadcrumb.Item 
+              key={item.id}
+              onClick={() => {
+                setCurrentParentId(item.id);
+                setCurrentPath(currentPath.slice(0, currentPath.findIndex(p => p.id === item.id) + 1));
+              }}
+            >
+              {item.name}
+            </Breadcrumb.Item>
+          ))}
         </Breadcrumb>
         <Table
           rowKey="ID"
@@ -80,7 +102,15 @@ const ImportModal: React.FC<ImportModalProps> = ({
               dataIndex: 'Name',
               width: 500,
               render: (text: string, record: FileItem) => (
-                <div className="flex items-center">
+                <div 
+                  className="flex items-center"
+                  onDoubleClick={() => {
+                    if (record.IsDir) {
+                      setCurrentParentId(record.ID);
+                      setCurrentPath([...currentPath, {id: record.ID, name: record.Name}]);
+                    }
+                  }}
+                >
                   {record.IsDir ? (
                     <FolderOutlined className="mr-2 text-yellow-500" />
                   ) : (
