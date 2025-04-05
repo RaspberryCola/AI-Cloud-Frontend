@@ -64,7 +64,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
         {
           title: '解析状态',
           dataIndex: 'Status',
-          width: 100,
+          width: 150,
           render: (status: number) => (
             <Tag color={{
               2: 'success',
@@ -76,18 +76,18 @@ const DocumentList: React.FC<DocumentListProps> = ({
             </Tag>
           )
         },
-        {
-          title: '启用状态',
-          dataIndex: 'Enabled',
-          width: 100,
-          render: (enabled: boolean) => (
-            <Switch 
-              checked={enabled}
-              checkedChildren="启用" 
-              unCheckedChildren="关闭"
-            />
-          )
-        },
+        // {
+        //   title: '启用状态',
+        //   dataIndex: 'Enabled',
+        //   width: 100,
+        //   render: (enabled: boolean) => (
+        //     <Switch 
+        //       checked={enabled}
+        //       checkedChildren="启用" 
+        //       unCheckedChildren="关闭"
+        //     />
+        //   )
+        // },
         {
           title: '操作',
           key: 'action',

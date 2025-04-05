@@ -122,7 +122,11 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-300px)] border border-gray-300 rounded-lg shadow-sm bg-white">
+    <div className="flex flex-col h-[calc(100vh-250px)] border border-gray-300 rounded-xl shadow-sm bg-white">
+      <div className='p-2 bg-gray-100 text-gray-700 text-left  font-medium border-b border-gray-200 rounded-t-xl'>
+        ⚠️注意：当前为知识库对话测试，不支持多轮对话。如需多轮对话和工具调用，请使用Agent。
+      </div>
+      
       {/* Message Display Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white rounded-lg">
         {messages.map((msg) => (
@@ -160,9 +164,8 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
         <div ref={messagesEndRef} />
       </div>
 
-
       {/* Input Area */}
-      <div className="p-4 border-t border-gray-200 bg-white">
+      <div className="p-4 border-t border-gray-200 bg-white rounded-b-xl">
         <div className="flex items-center space-x-2">
           <Input
             placeholder="输入您的问题..."
