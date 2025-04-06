@@ -10,7 +10,6 @@ import {
 } from '@ant-design/icons';
 import { useDispatch } from 'react-redux';
 import { logout } from '../store/authSlice';
-import { userService } from '../services/userService';
 
 const { Header, Content } = Layout;
 
@@ -21,7 +20,6 @@ const MainLayout: React.FC = () => {
 
   const handleMenuClick = (key: string) => {
     if (key === 'logout') {
-      userService.logout();
       dispatch(logout());
       navigate('/login');
     } else {

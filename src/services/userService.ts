@@ -27,10 +27,6 @@ class UserService {
     return httpClient.post('/users/register', data);
   }
 
-  async logout(): Promise<void> {
-    localStorage.removeItem('auth');
-  }
-
   getAuthToken(): string | null {
     const authData = localStorage.getItem('auth');
     if (authData) {
