@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Space, Tag, Button, Checkbox, Switch } from 'antd';
+import { Table, Space, Tag, Button} from 'antd';
 import { EyeOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { KnowledgeDocItem } from '../../services/api';
 
@@ -10,6 +10,7 @@ interface DocumentListProps {
   currentPage: number;
   pageSize: number;
   onPageChange: (page: number, pageSize: number) => void;
+  rowSelection: any;
 }
 
 const DocumentList: React.FC<DocumentListProps> = ({
@@ -19,6 +20,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   currentPage,
   pageSize,
   onPageChange,
+  rowSelection,
 }) => {
   return (
     <Table
@@ -36,13 +38,14 @@ const DocumentList: React.FC<DocumentListProps> = ({
         className: "text-sm",
         size: "small"
       }}
+      rowSelection={rowSelection}
       columns={[
-        {
-          title: <Checkbox />,
-          dataIndex: 'checkbox',
-          width: 30,
-          render: () => <Checkbox />
-        },
+        // {
+        //   title: <Checkbox />,
+        //   dataIndex: 'checkbox',
+        //   width: 30,
+        //   render: () => <Checkbox />
+        // },
         {
           title: '#',
           dataIndex: 'index',

@@ -244,6 +244,17 @@ interface KnowledgeDocListParams {
   kb_id: string;
 }
 
+interface DeleteKnowledgeDocsRequest{
+  doc_ids: string[];
+}
+
+// 批量删除知识库文档
+export const deleteKnowledgeDocs = async (
+  data: DeleteKnowledgeDocsRequest
+): Promise<ApiResponse<null>> => {
+  return api.post('/knowledge/docDelete', data);
+};
+
 // 知识库API
 export const getKnowledgeList = async (
   params: KnowledgeListParams

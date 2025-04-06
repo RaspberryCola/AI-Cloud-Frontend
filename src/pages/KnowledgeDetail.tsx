@@ -1,9 +1,8 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Space, message, Input } from 'antd';
+import { Button, Space, message, Input, Table, Modal } from 'antd';
 import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
-import { getKnowledgeDocPage, importCloudFileToKnowledge, uploadFileToKnowledge, getKnowledgeDetail, KnowledgeDocItem } from '../services/api'; // Import KnowledgeDocItem from api.ts
-//import { KnowledgeDocItem } from '../types/apiResponse';
+import { getKnowledgeDocPage, importCloudFileToKnowledge, uploadFileToKnowledge, getKnowledgeDetail, KnowledgeDocItem, deleteKnowledgeDocs } from '../services/api';
 import DocumentList from '../components/KnowledgeDetail/DocumentList';
 import RetrieveTest from '../components/KnowledgeDetail/RetrieveTest';
 import KnowledgeChat from '../components/KnowledgeDetail/KnowledgeChat'; // Import the new chat component
@@ -24,6 +23,7 @@ const KnowledgeDetail: React.FC = () => {
   const [importModalVisible, setImportModalVisible] = React.useState(false);
   const [uploadModalVisible, setUploadModalVisible] = React.useState(false);
   const [selectedFileId, setSelectedFileId] = React.useState('');
+  const [selectedRowKeys, setSelectedRowKeys] = React.useState<string[]>([]);
 
   const fetchKbDetail = async () => {
     if (!id) return;
@@ -123,6 +123,49 @@ const KnowledgeDetail: React.FC = () => {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
+
+  const onSelectChange = (newSelectedRowKeys: string[]) => {
+    setSelectedRowKeys(newSelectedRowKeys);
+  };
+
+
+  const handleBatchDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请选择要删除的文件');
+      return;
+    }
+
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除选中的 ${selectedRowKeys.length} 个文档吗？`,
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      async onOk() {
+        try {
+          const res = await deleteKnowledgeDocs({
+            doc_ids: selectedRowKeys
+          });
+          if (res.code === 0) {
+            message.success('删除成功');
+            setSelectedRowKeys([]);
+            // 刷新文档列表
+            fetchDocList(currentPage, pageSize);
+          } else {
+            message.error(res.message || '删除失败');
+          }
+        } catch (error) {
+          message.error('删除失败');
+        }
+      },
+    });
+  }
+
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: onSelectChange,
+  };
+
   return (
     <div className="flex">
       {/* 左侧导航栏 */}
@@ -137,19 +180,19 @@ const KnowledgeDetail: React.FC = () => {
         </div>
 
         <div className="space-y-1">
-          <div 
+          <div
             className={`px-3 py-2 rounded-md cursor-pointer ${activeTab === 'documents' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
             onClick={() => setActiveTab('documents')}
           >
             文档
           </div>
-          <div 
+          <div
             className={`px-3 py-2 rounded-md cursor-pointer ${activeTab === 'retrieve' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
             onClick={() => setActiveTab('retrieve')}
           >
             召回测试
           </div>
-          <div 
+          <div
             className={`px-3 py-2 rounded-md cursor-pointer ${activeTab === 'chat' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
             onClick={() => setActiveTab('chat')}
           >
@@ -162,40 +205,49 @@ const KnowledgeDetail: React.FC = () => {
       <div className="flex-1 p-6 bg-gray-50">
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-4">
-            <span 
+            <span
               className="text-gray-800 hover:bg-gray-100 cursor-pointer rounded transition-colors"
               onClick={handleBack}
             >
-              根目录 
+              根目录
             </span>
             &nbsp;/ {kbName || '加载中...'}
           </h2>
-          
+
           {activeTab === 'documents' ? (
             <>
               <div className="flex justify-between items-center mb-4">
                 <Space>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     icon={<UploadOutlined />}
                     onClick={() => setImportModalVisible(true)}
                     className="h-8"
                   >
                     导入云盘文件
                   </Button>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     icon={<PlusOutlined />}
                     onClick={handleCreateNew}
                     className="h-8"
                   >
                     上传新文件
                   </Button>
+                  {/* 添加批量删除按钮 */}
+                  {selectedRowKeys.length > 0 && (
+                    <Button
+                      danger
+                      onClick={handleBatchDelete}
+                    >
+                      批量删除
+                    </Button>
+                  )}
                 </Space>
 
                 <div className="w-1/3">
-                  <Input 
-                    placeholder="搜索文档..." 
+                  <Input
+                    placeholder="搜索文档..."
                     className="w-full"
                   />
                 </div>
@@ -208,6 +260,7 @@ const KnowledgeDetail: React.FC = () => {
                 currentPage={currentPage}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
+                rowSelection={rowSelection}
               />
             </>
           ) : activeTab === 'retrieve' ? (
