@@ -3,8 +3,8 @@ import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
-import { login as loginApi } from '../services/api';
 import { login as loginAction } from '../store/authSlice';
+import { userService } from '../services/userService';
 
 interface LoginForm {
   username: string;
@@ -18,12 +18,9 @@ const Login: React.FC = () => {
 
   const onFinish = async (values: LoginForm) => {
     try {
-      const response = await loginApi(values);
-      
+      const response = await userService.login(values);
+
       if (response.code === 0) {
-        // 保存token到localStorage
-        localStorage.setItem('token', response.data.access_token);
-        
         // 更新Redux状态
         dispatch(loginAction({
           user: {
@@ -56,7 +53,7 @@ const Login: React.FC = () => {
           <h1 className="text-2xl font-bold">小鱼快传2.0</h1>
           <p className="text-gray-600">欢迎回来</p>
         </div>
-        
+
         <Form
           form={form}
           name="login"
