@@ -66,7 +66,7 @@ const MainLayout: React.FC = () => {
         <div className="flex items-center justify-between px-6 w-full">
           {/* 左侧部分：Logo 和主菜单 */}
           <div className="flex items-center flex-1">
-            <div className="text-xl font-bold mr-8 whitespace-nowrap flex-shrink-0">小鱼快传2.0</div>
+            <div className="text-xl font-bold mr-8 whitespace-nowrap flex-shrink-0">AI-Cloud</div>
             <Menu
               mode="horizontal"
               selectedKeys={[location.pathname]}
