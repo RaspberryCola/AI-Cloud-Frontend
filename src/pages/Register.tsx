@@ -2,9 +2,9 @@ import React from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { register as registerApi } from '../services/api';
-import { login as loginAction } from '../store/authSlice';
+import { userService } from '../services/userService';
+import type { RegisterRequest } from '../types/api';
+
 
 interface RegisterForm {
   username: string;
@@ -16,18 +16,23 @@ interface RegisterForm {
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const [form] = Form.useForm();
 
   const onFinish = async (values: RegisterForm) => {
     try {
-      const { confirmPassword, ...registerData } = values;
-      const response = await registerApi(registerData);
+
+      const registerRequest: RegisterRequest = {
+        username: values.username,
+        password: values.password,
+        email: values.email,
+        phone: values.phone,
+      };
+    
+      const response = await userService.register(registerRequest);
 
       if (response.code === 0) {
         message.success(response.message);
-        // 注册成功后自动登录
-        // 这里可以根据实际需求决定是否自动登录，或者跳转到登录页面
+        // 注册成功后跳转到登录页面
         navigate('/login');
       } else {
         message.error(response.message || '注册失败');
