@@ -1,7 +1,7 @@
 import React from 'react';
 import { Input, Button, Card, Typography, message } from 'antd';
-import type { RetrieveItem } from '../../services/api';
-import { retrieveKnowledge } from '../../services/api';
+import type { RetrieveItem } from '../../types/knowledge';
+import {knowledgeService } from '../../services/knowledgeService';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -23,7 +23,7 @@ const RetrieveTest: React.FC<RetrieveTestProps> = ({ kbId }) => {
     }
     try {
       setRetrieveLoading(true);
-      const res = await retrieveKnowledge({
+      const res = await knowledgeService.retrieveKnowledge({
         kb_id: kbId,
         query: queryText,
         top_k: topK

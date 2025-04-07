@@ -2,12 +2,17 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Space, message, Input, Table, Modal } from 'antd';
 import { PlusOutlined, UploadOutlined } from '@ant-design/icons';
-import { getKnowledgeDocPage, importCloudFileToKnowledge, uploadFileToKnowledge, getKnowledgeDetail, KnowledgeDocItem, deleteKnowledgeDocs } from '../services/api';
+
 import DocumentList from '../components/KnowledgeDetail/DocumentList';
 import RetrieveTest from '../components/KnowledgeDetail/RetrieveTest';
 import KnowledgeChat from '../components/KnowledgeDetail/KnowledgeChat'; // Import the new chat component
 import ImportModal from '../components/KnowledgeDetail/ImportModal';
 import UploadModal from '../components/KnowledgeDetail/UploadModal';
+
+import { knowledgeService } from '../services/knowledgeService';
+import{
+  KnowledgeDocItem
+} from '../types/knowledge';
 
 const KnowledgeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,7 +33,7 @@ const KnowledgeDetail: React.FC = () => {
   const fetchKbDetail = async () => {
     if (!id) return;
     try {
-      const res = await getKnowledgeDetail(id);
+      const res = await knowledgeService.getKnowledgeDetail(id);
       if (res.code === 0) {
         setKbName(res.data.Name || '');
         setKbDescription(res.data.Description || '');
@@ -42,7 +47,7 @@ const KnowledgeDetail: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const res = await getKnowledgeDocPage({
+      const res = await knowledgeService.getKnowledgeDocPage({
         page,
         page_size: pageSize,
         kb_id: id
@@ -73,7 +78,7 @@ const KnowledgeDetail: React.FC = () => {
   const handleImport = async () => {
     if (!id || !selectedFileId) return;
     try {
-      const res = await importCloudFileToKnowledge({
+      const res = await knowledgeService.importCloudFileToKnowledge({
         file_id: selectedFileId,
         kb_id: id
       });
@@ -92,7 +97,10 @@ const KnowledgeDetail: React.FC = () => {
   const handleUpload = async (file: File) => {
     if (!id) return false;
     try {
-      const res = await uploadFileToKnowledge(id, file);
+      const res = await knowledgeService.uploadFileToKnowledge({
+        kb_id: id,
+        file: file
+      });
       if (res.code === 0) {
         message.success('上传文件成功');
         setUploadModalVisible(false);
@@ -143,7 +151,7 @@ const KnowledgeDetail: React.FC = () => {
       cancelText: '取消',
       async onOk() {
         try {
-          const res = await deleteKnowledgeDocs({
+          const res = await knowledgeService.deleteKnowledgeDocs({
             doc_ids: selectedRowKeys
           });
           if (res.code === 0) {

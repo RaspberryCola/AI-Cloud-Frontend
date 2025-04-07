@@ -13,7 +13,6 @@ export interface FileItem {
   UpdatedAt: string;
 }
 
-
 export interface FileListParams {
   parent_id?: string;
   page?: number;

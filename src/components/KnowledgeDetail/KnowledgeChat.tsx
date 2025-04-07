@@ -1,8 +1,8 @@
 import React from 'react';
 import { Input, Button, Spin, Avatar, message as antdMessage } from 'antd';
 import { SendOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
-import { knowledgeChatStream } from '../../services/api';
 import ReactMarkdown from 'react-markdown';
+import { knowledgeService } from '../../services/knowledgeService';
 
 interface Message {
   id: string;
@@ -54,7 +54,7 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
     setMessages((prev) => [...prev, initialBotMessage]);
 
     try {
-      const response = await knowledgeChatStream({
+      const response = await knowledgeService.knowledgeChatStream({
         kbs: [kbId],
         query: userMessage.text,
       });
@@ -114,6 +114,7 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
     }
   };
 
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -126,7 +127,7 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
       <div className='p-2 bg-gray-100 text-gray-700 text-left  font-medium border-b border-gray-200 rounded-t-xl'>
         ⚠️注意：当前为知识库对话测试，不支持多轮对话。如需多轮对话和工具调用，请使用Agent。
       </div>
-      
+
       {/* Message Display Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white rounded-lg">
         {messages.map((msg) => (

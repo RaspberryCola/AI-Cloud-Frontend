@@ -2,13 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, List, Input, Button, Tag, Space, Modal, Form, message } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
-import { 
-  getKnowledgeList, 
-  createKnowledge, 
-  updateKnowledge, 
-  deleteKnowledge,
-  KnowledgeItem 
-} from '../services/api';
+import { knowledgeService } from '../services/knowledgeService';
+
+import {KnowledgeItem } from '../types/knowledge';
 
 const { Search } = Input;
 
@@ -27,7 +23,7 @@ const KnowledgeBase: React.FC = () => {
   const fetchKnowledgeList = async () => {
     setLoading(true);
     try {
-      const res = await getKnowledgeList({ page: 1, page_size: 10 });
+      const res = await knowledgeService.getKnowledgeList({ page: 1, page_size: 10 });
       if (res.code === 0) {
         setData(res.data.list);
       } else {
@@ -42,7 +38,7 @@ const KnowledgeBase: React.FC = () => {
   const onSearch = async (value: string) => {
     setLoading(true);
     try {
-      const res = await getKnowledgeList({ page: 1, page_size: 10, name: value });
+      const res = await knowledgeService.getKnowledgeList({ page: 1, page_size: 10, name: value });
       if (res.code === 0) {
         setData(res.data.list);
       } else {
@@ -70,7 +66,7 @@ const KnowledgeBase: React.FC = () => {
       cancelText: '取消',
       async onOk() {
         try {
-          const res = await deleteKnowledge(ID);
+          const res = await knowledgeService.deleteKnowledge(ID);
           if (res.code === 0) {
             message.success('删除成功');
             fetchKnowledgeList();
@@ -88,7 +84,11 @@ const KnowledgeBase: React.FC = () => {
     try {
       const values = await form.validateFields();
       if (editingItem) {
-        const res = await updateKnowledge(editingItem.ID, values);
+        const res = await knowledgeService.updateKnowledge({
+          kb_id: editingItem.ID,
+          name: values.name,
+          description: values.description,
+        });
         if (res.code === 0) {
           message.success('更新成功');
           fetchKnowledgeList();
@@ -96,7 +96,7 @@ const KnowledgeBase: React.FC = () => {
           message.error(res.message || '更新失败');
         }
       } else {
-        const res = await createKnowledge(values);
+        const res = await knowledgeService.createKnowledge(values);
         if (res.code === 0) {
           message.success('创建成功');
           fetchKnowledgeList();

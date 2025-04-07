@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 
 export const httpClient = axios.create({
     baseURL: "http://localhost:8080/api",
