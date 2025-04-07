@@ -1,17 +1,6 @@
 import { message } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import {
-  //createFolder,
-  //deleteFile,
-  downloadFile,
-  //moveFiles,
-  uploadFile,
-  searchFiles,
-  renameFile as renameFileApi,
-  // getFilePathById,
-  // getFileIdPath,
-} from '../services/api';
 import { FileItem, BreadcrumbItem } from '../types/cloudDrive';
 import { RootState } from '../store';
 import {
@@ -45,7 +34,7 @@ export const useFileOperations = () => {
       let response;
       
       if (isSearch && searchKey.trim()) {
-        response = await searchFiles({
+        response = await cloudDriveService.searchFiles({
           key: searchKey.trim(),
           page,
           page_size: pageSize,
@@ -89,7 +78,7 @@ export const useFileOperations = () => {
         const file = files[i];
         message.loading({ content: `正在上传: ${file.name}`, key: file.name });
         
-        const response = await uploadFile(file, parentId);
+        const response = await cloudDriveService.uploadFile(file, parentId);
         if (response.code === 0) {
           message.success({ content: `${file.name} 上传成功`, key: file.name });
         } else {
@@ -172,7 +161,7 @@ export const useFileOperations = () => {
         message.loading({ content: `正在下载：${file.Name}`, key: file.ID });
       }
       
-      const blob = await downloadFile(file.ID);
+      const blob = await cloudDriveService.downloadFile(file.ID);
       downloadBlob(blob, file.Name, file.MIMEType);
       message.success({ content: '下载成功', key: file.ID });
       return true;
@@ -189,7 +178,7 @@ export const useFileOperations = () => {
     }
 
     try {
-      const response = await renameFileApi({
+      const response = await cloudDriveService.renameFile({
         file_id: fileId,
         new_name: newName.trim()
       });

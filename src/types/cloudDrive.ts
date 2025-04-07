@@ -31,6 +31,18 @@ export interface MoveFilesRequest{
   target_pid?: string;
 }
 
+export interface FileSearchParams {
+  key: string;
+  page: number;
+  page_size: number;
+  sort?: string;
+}
+
+
+export interface RenameFileRequest {
+  file_id: string;
+  new_name: string;
+}
 
 
 // 原有的
@@ -43,14 +55,4 @@ export interface PaginationState {
   current: number;
   pageSize: number;
   total: number;
-}
-
-export interface MoveFilesRequest {
-  files_pid: string[];
-  target_pid?: string;
-}
-
-export interface RenameFileRequest {
-  file_id: string;
-  new_name: string;
 }

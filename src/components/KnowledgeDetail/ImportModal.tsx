@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Modal, Table, Breadcrumb, message } from 'antd';
 import { FileOutlined, FolderOutlined } from '@ant-design/icons';
-import type { FileItem } from '../../services/api';
+import type { FileItem } from '../../types/cloudDrive';
 //import { getFileList } from '../../services/api';
 
 import { cloudDriveService } from '../../services/cloudDriveService';

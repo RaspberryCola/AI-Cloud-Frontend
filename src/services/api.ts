@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { ApiResponse,PageData } from '../types/common';
+
 const api = axios.create({
   baseURL: 'http://localhost:8080/api',
   timeout: 10000,
@@ -52,93 +54,6 @@ api.interceptors.response.use(
   }
 );
 
-
-// 通用响应类型
-interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-}
-
-// 分页数据类型
-interface PageData<T> {
-  total: number;
-  list: T[];
-}
-
-// 文件列表接口类型
-export interface FileItem {
-  ID: string;
-  UserID: number;
-  Name: string;
-  Size: number;
-  Hash: string;
-  MIMEType: string;
-  IsDir: boolean;
-  ParentID: string | null;
-  StorageType: string;
-  StorageKey: string;
-  CreatedAt: string;
-  UpdatedAt: string;
-}
-
-
-// 文件搜索参数
-interface FileSearchParams {
-  key: string;
-  page: number;
-  page_size: number;
-  sort?: string;
-}
-
-
-// 移动文件请求参数
-interface MoveFilesRequest {
-  files_pid: string[];
-  target_pid?: string;
-}
-
-// 重命名请求参数
-interface RenameFileRequest {
-  file_id: string;
-  new_name: string;
-}
-
-// API函数
-
-export const downloadFile = async (fileId: string): Promise<Blob> => {
-  const response = await api.get(`/files/download`, {
-    params: { file_id: fileId },
-    responseType: 'blob',
-    transformResponse: (data) => data, // 防止响应被处理
-  });
-  return response.data;
-};
-
-export const uploadFile = async (file: File, parentId?: string): Promise<ApiResponse<FileItem>> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  if (parentId) {
-    formData.append('parent_id', parentId);
-  }
-  return api.post('/files/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-};
-
-export const moveFiles = async (data: MoveFilesRequest): Promise<ApiResponse<null>> => {
-  return api.post('/files/move', data);
-};
-
-export const searchFiles = async (params: FileSearchParams): Promise<ApiResponse<PageData<FileItem>>> => {
-  return api.get('/files/search', { params });
-};
-
-export const renameFile = async (data: RenameFileRequest): Promise<ApiResponse<null>> => {
-  return api.put('/files/rename', data);
-};
 
 // 知识库接口类型
 export interface KnowledgeItem {
