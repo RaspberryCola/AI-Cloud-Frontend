@@ -32,7 +32,7 @@ export const useFileOperations = () => {
     try {
       dispatch(setLoading(true));
       let response;
-      
+
       if (isSearch && searchKey.trim()) {
         response = await cloudDriveService.searchFiles({
           key: searchKey.trim(),
@@ -77,7 +77,7 @@ export const useFileOperations = () => {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         message.loading({ content: `正在上传: ${file.name}`, key: file.name });
-        
+
         const response = await cloudDriveService.uploadFile(file, parentId);
         if (response.code === 0) {
           message.success({ content: `${file.name} 上传成功`, key: file.name });
@@ -160,7 +160,7 @@ export const useFileOperations = () => {
       } else {
         message.loading({ content: `正在下载：${file.Name}`, key: file.ID });
       }
-      
+
       const blob = await cloudDriveService.downloadFile(file.ID);
       downloadBlob(blob, file.Name, file.MIMEType);
       message.success({ content: '下载成功', key: file.ID });
@@ -182,7 +182,7 @@ export const useFileOperations = () => {
         file_id: fileId,
         new_name: newName.trim()
       });
-      
+
       if (response.code === 0) {
         message.success('重命名成功');
         fetchFileList();
@@ -208,7 +208,7 @@ export const useFileOperations = () => {
       if (pathResponse.code === 0 && idPathResponse.code === 0) {
         const pathParts = pathResponse.data.path.split('/').filter(Boolean);
         const idParts = idPathResponse.data.id_path.split('/').filter(Boolean);
-        
+
         const newPath = [
           { id: null, name: '根目录' },
           ...pathParts.slice(1).map((name: string, index: number) => ({

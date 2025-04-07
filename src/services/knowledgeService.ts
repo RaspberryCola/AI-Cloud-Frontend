@@ -90,7 +90,8 @@ class KnowledgeService {
     async retrieveKnowledge(data: RetrieveRequest): Promise<ApiResponse<RetrieveItem[]>> {
         return httpClient.post('/knowledge/retrieve', data);
     }
-
+    
+    // 问答接口
     async knowledgeChatStream(data: KnowledgeChatStreamRequest) :Promise<Response>{
         // 拦截器
         const authData = localStorage.getItem('auth');

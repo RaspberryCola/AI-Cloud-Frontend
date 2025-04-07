@@ -30,9 +30,12 @@ const KnowledgeBase: React.FC = () => {
 
   return (
     <div className="p-6">
+      {/* 新建/编辑知识库 */}
       <Modal
         title={editingItem ? "编辑知识库" : "新建知识库"}
-        visible={isModalVisible}
+        open={isModalVisible}
+        okText={"确定"}
+        cancelText={"取消"}
         onOk={handleEditSubmit}
         onCancel={() => setIsModalVisible(false)}
       >
@@ -47,6 +50,7 @@ const KnowledgeBase: React.FC = () => {
           <Form.Item
             name="description"
             label="知识库描述"
+            rules={[{ required: true, message: '请输入知识库描述' }]}
           >
             <Input.TextArea placeholder="请输入知识库描述" />
           </Form.Item>

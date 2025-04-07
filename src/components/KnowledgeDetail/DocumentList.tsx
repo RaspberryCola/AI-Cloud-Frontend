@@ -1,7 +1,7 @@
 import React from 'react';
 import { Table, Space, Tag, Button} from 'antd';
 import { EyeOutlined, DeleteOutlined } from '@ant-design/icons';
-import type { KnowledgeDocItem } from '../../services/api';
+import { KnowledgeDocItem } from '../../types/knowledge';
 
 interface DocumentListProps {
   loading: boolean;

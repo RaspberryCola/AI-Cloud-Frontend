@@ -6,7 +6,7 @@ import { FileToolbar } from '../components/CloudDrive/FileToolbar';
 import { FileBreadcrumb } from '../components/CloudDrive/FileBreadcrumb';
 import MoveFilesModal from '../components/CloudDrive/MoveFilesModal';
 import { getColumns } from '../components/CloudDrive/columns';
-import { useFileOperations } from '../hooks/useFileOperations';
+import { useFileOperations } from '../hooks/useCloudDrive';
 import { RootState } from '../store';
 import { setCurrentPath, setSelectedRows, setSortField, setSortOrder, setSearchKey, setIsSearchMode } from '../store/cloudDriveSlice';
 import { FileItem, BreadcrumbItem } from '../types/cloudDrive';
