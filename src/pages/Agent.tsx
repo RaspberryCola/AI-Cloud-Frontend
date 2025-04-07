@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Input, Card, Layout, message } from 'antd';
+import { Button, Input, Card, Layout, Select, Modal, Form, InputNumber, Switch } from 'antd';
 import { 
   QuestionCircleOutlined, 
   PlusOutlined, 
@@ -8,7 +8,8 @@ import {
   DownOutlined,
   ThunderboltOutlined,
   SendOutlined,
-  MessageOutlined
+  DatabaseOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 
 const { TextArea } = Input;
@@ -19,6 +20,27 @@ interface ChatMessage {
   content: string;
 }
 
+interface ModelParams {
+  temperature: number;
+  topP: number;
+  maxTokens: number;
+  streamOutput: boolean;
+}
+
+const defaultModelParams: ModelParams = {
+  temperature: 0.7,
+  topP: 0.9,
+  maxTokens: 2048,
+  streamOutput: true,
+};
+
+const modelOptions = [
+  { value: 'gpt-4', label: 'GPT-4' },
+  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+  { value: 'deepseek-chat', label: 'DeepSeek Chat' },
+  { value: 'claude-2', label: 'Claude 2' },
+];
+
 const Agent: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -26,6 +48,9 @@ const Agent: React.FC = () => {
     { role: 'assistant', content: '你好！有什么可以帮助你的吗？' }
   ]);
   const [userInput, setUserInput] = useState('');
+  const [selectedModel, setSelectedModel] = useState('gpt-4');
+  const [modelParams, setModelParams] = useState<ModelParams>(defaultModelParams);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleSendMessage = () => {
     if (!userInput.trim()) return;
@@ -38,7 +63,6 @@ const Agent: React.FC = () => {
     setChatMessages([...chatMessages, newMessage]);
     setUserInput('');
 
-    // Simulate agent response
     setTimeout(() => {
       const response: ChatMessage = {
         role: 'assistant',
@@ -48,84 +72,105 @@ const Agent: React.FC = () => {
     }, 1000);
   };
 
+  const handleParamsChange = (values: ModelParams) => {
+    setModelParams(values);
+  };
+
   return (
     <Layout className="min-h-screen bg-white">
-      {/* Top Navigation Bar */}
       <Header className="bg-white border-b flex items-center justify-between px-6">
         <div className="text-lg font-semibold ml-8">编排</div>
-        <div className="flex items-center ml-auto gap-2">
-          <span className="flex items-center gap-1">
-          <span>DeepSeek-V3</span>
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 mr-2 rounded text-xs">CHAT</span>
-          </span>
-        </div>
         <div className="flex gap-4">
-          <Button icon={<SettingOutlined />}>Agent 设置</Button>
           <Button type="primary" icon={<DownOutlined />}>发布</Button>
         </div>
       </Header>
 
       <Content className="flex p-6 gap-6">
-        {/* Left Panel - Editor */}
         <div className="w-1/2 space-y-6">
-          {/* Prompt Section */}
-          <Card 
-            title={
-              <div className="flex items-center gap-1">
-                <span>提示词</span>
-                <QuestionCircleOutlined className="text-gray-400" />
+          {/* AI 配置部分 */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                <ThunderboltOutlined className="text-purple-600" />
               </div>
-            }
-            extra={
-              <Button 
-                type="default" 
-                icon={<ThunderboltOutlined className="text-blue-500" />}
-                className="flex items-center text-blue-500 border-blue-500 hover:text-blue-600 hover:border-blue-600"
-              >
-                自动优化提示词
-              </Button>
-            }
-          >
-            <TextArea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="在这里写你的提示词，输入'\'插入变量、输入'/'插入提示内容块"
-              autoSize={{ minRows: 8, maxRows: 12 }}
-              className="mb-2"
-            />
-            <div className="text-right text-sm text-gray-500">
-              {prompt.length} 字符
+              <span className="text-lg font-medium">AI 配置</span>
+            </div>
+
+            {/* AI 模型选择 */}
+            <Card className="border rounded-lg">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="font-medium">AI 模型</span>
+                <QuestionCircleOutlined className="text-gray-400" />
+                <div className="flex-1 text-right">
+                  <Button 
+                    icon={<SettingOutlined />}
+                    onClick={() => setIsModalVisible(true)}
+                    className="ml-2"
+                  />
+                </div>
+              </div>
+              <Select
+                value={selectedModel}
+                onChange={setSelectedModel}
+                options={modelOptions}
+                style={{ width: '100%' }}
+                suffixIcon={<DownOutlined />}
+              />
+            </Card>
+
+            {/* 提示词部分 */}
+            <Card className="border rounded-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">提示词</span>
+                  <QuestionCircleOutlined className="text-gray-400" />
+                </div>
+                <div className="text-gray-400 text-sm">
+                  输入"/"可选择变量
+                </div>
+              </div>
+              <TextArea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="模型固定的引导词，通过调整该内容，可以引导模型聊天方向。该内容会被固定在上下文的开头。可通过输入/插入选择变量"
+                autoSize={{ minRows: 8, maxRows: 12 }}
+                className="mb-2"
+              />
+            </Card>
+          </div>
+
+          {/* 知识库部分 */}
+          <Card className="border rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <DatabaseOutlined className="text-blue-600" />
+                </div>
+                <span className="font-medium">关联知识库</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button type="text">选择</Button>
+                <Button type="text">参数</Button>
+              </div>
             </div>
           </Card>
 
-          {/* Knowledge Base Section */}
-          <Card 
-            title="知识库"
-            extra={<Button icon={<PlusOutlined />}>添加</Button>}
-          >
-            <p className="text-gray-600">
-              您可以导入知识库作为上下文
-            </p>
-          </Card>
-
-          {/* Tools Section */}
-          <Card 
-            title={
-              <div className="flex items-center gap-1">
-                <span>MCP</span>
+          {/* 工具调用部分 */}
+          <Card className="border rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <ToolOutlined className="text-blue-600" />
+                </div>
+                <span className="font-medium">工具调用</span>
                 <QuestionCircleOutlined className="text-gray-400" />
               </div>
-            }
-            extra={<Button icon={<PlusOutlined />}>添加</Button>}
-          >
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">启用</span>
-              <span>0/0 启用</span>
+              <Button type="text">选择</Button>
             </div>
           </Card>
         </div>
 
-        {/* Right Panel - Chat Preview */}
+        {/* 右侧预览部分保持不变 */}
         <div className="w-1/2">
           <Card 
             title={
@@ -151,7 +196,6 @@ const Agent: React.FC = () => {
                         <div className="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-white">
                           User
                         </div>
-
                       </>
                     ) : (
                       <>
@@ -161,7 +205,6 @@ const Agent: React.FC = () => {
                         <div className="bg-white border px-4 py-2 rounded-lg">
                           {message.content}
                         </div>
-
                       </>
                     )}
                   </div>
@@ -189,6 +232,8 @@ const Agent: React.FC = () => {
           </Card>
         </div>
       </Content>
+
+      {/* Modal 部分保持不变 */}
     </Layout>
   );
 };
