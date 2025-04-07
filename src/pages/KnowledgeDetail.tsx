@@ -10,7 +10,7 @@ import ImportModal from '../components/KnowledgeDetail/ImportModal';
 import UploadModal from '../components/KnowledgeDetail/UploadModal';
 
 import { knowledgeService } from '../services/knowledgeService';
-import{
+import {
   KnowledgeDocItem
 } from '../types/knowledge';
 
@@ -33,6 +33,7 @@ const KnowledgeDetail: React.FC = () => {
   const fetchKbDetail = async () => {
     if (!id) return;
     try {
+      setLoading(true);
       const res = await knowledgeService.getKnowledgeDetail(id);
       if (res.code === 0) {
         setKbName(res.data.Name || '');
@@ -40,6 +41,8 @@ const KnowledgeDetail: React.FC = () => {
       }
     } catch (error) {
       console.error('获取知识库详情失败', error);
+    }finally {
+      setLoading(false);
     }
   };
 

@@ -58,7 +58,6 @@ export interface AddNewRequest {
 }
 
 // RAG相关
-
 export interface RetrieveRequest {
     kb_id: string;
     query: string;
@@ -80,4 +79,3 @@ export interface KnowledgeChatStreamRequest {
     kbs: string[];
     query: string;
 }
-
