@@ -9,7 +9,7 @@ import { getColumns } from '../components/CloudDrive/columns';
 import { useFileOperations } from '../hooks/useFileOperations';
 import { RootState } from '../store';
 import { setCurrentPath, setSelectedRows, setSortField, setSortOrder, setSearchKey, setIsSearchMode } from '../store/cloudDriveSlice';
-import type { FileItem, BreadcrumbItem } from '../types/cloudDrive';
+import { FileItem, BreadcrumbItem } from '../types/cloudDrive';
 
 import { cloudDriveService } from '../services/cloudDriveService';
 
@@ -39,8 +39,7 @@ const CloudDrive: React.FC = () => {
     handleRename,
     getFilePath,
     handleSearch,
-    handleClearSearch,
-    //getFileList,
+    handleClearSearch
   } = useFileOperations();
 
   const [isNewFolderModalVisible, setIsNewFolderModalVisible] = useState(false);

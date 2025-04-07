@@ -52,37 +52,6 @@ api.interceptors.response.use(
   }
 );
 
-// 接口类型定义
-interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-interface LoginResponse {
-  code: number;
-  data: {
-    access_token: string;
-    expires_in: number;
-    token_type: string;
-  };
-  message: string;
-}
-
-interface RegisterRequest {
-  username: string;
-  password: string;
-  email: string;
-  phone: string;
-}
-
-interface RegisterResponse {
-  code: number;
-  data: {
-    id: number;
-    username: string;
-  };
-  message: string;
-}
 
 // 通用响应类型
 interface ApiResponse<T> {
@@ -113,12 +82,6 @@ export interface FileItem {
   UpdatedAt: string;
 }
 
-interface FileListParams {
-  parent_id?: string;
-  page: number;
-  page_size: number;
-  sort?: string;
-}
 
 // 文件搜索参数
 interface FileSearchParams {
@@ -128,11 +91,6 @@ interface FileSearchParams {
   sort?: string;
 }
 
-// 创建文件夹请求参数
-interface CreateFolderRequest {
-  name: string;
-  parent_id?: string;
-}
 
 // 移动文件请求参数
 interface MoveFilesRequest {
@@ -147,25 +105,6 @@ interface RenameFileRequest {
 }
 
 // API函数
-export const login = async (data: LoginRequest): Promise<LoginResponse> => {
-  return api.post('/users/login', data);
-};
-
-export const register = async (data: RegisterRequest): Promise<RegisterResponse> => {
-  return api.post('/users/register', data);
-};
-
-export const getFileList = async (params: FileListParams): Promise<ApiResponse<PageData<FileItem>>> => {
-  return api.get('/files/page', { params });
-};
-
-export const createFolder = async (data: CreateFolderRequest): Promise<ApiResponse<FileItem>> => {
-  return api.post('/files/folder', data);
-};
-
-export const deleteFile = async (fileId: string): Promise<ApiResponse<null>> => {
-  return api.delete(`/files/delete`, { params: { file_id: fileId } });
-};
 
 export const downloadFile = async (fileId: string): Promise<Blob> => {
   const response = await api.get(`/files/download`, {
@@ -199,14 +138,6 @@ export const searchFiles = async (params: FileSearchParams): Promise<ApiResponse
 
 export const renameFile = async (data: RenameFileRequest): Promise<ApiResponse<null>> => {
   return api.put('/files/rename', data);
-};
-
-export const getFilePathById = async (fileId: string): Promise<ApiResponse<{ path: string }>> => {
-  return api.get(`/files/path`, { params: { file_id: fileId } });
-};
-
-export const getFileIdPath = async (fileId: string): Promise<ApiResponse<{ id_path: string }>> => {
-  return api.get(`/files/id-path`, { params: { file_id: fileId } });
 };
 
 // 知识库接口类型

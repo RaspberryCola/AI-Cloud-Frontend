@@ -21,6 +21,19 @@ export interface FileListParams {
   sort?: string;
 }
 
+export interface CreateFolderRequest {
+  name: string;
+  parent_id?: string;
+}
+
+export interface MoveFilesRequest{
+  files_pid: string[];
+  target_pid?: string;
+}
+
+
+
+// 原有的
 export interface BreadcrumbItem {
   id: string | null;
   name: string;
@@ -40,17 +53,4 @@ export interface MoveFilesRequest {
 export interface RenameFileRequest {
   file_id: string;
   new_name: string;
-}
-
-export interface CloudDriveState {
-  currentPath: BreadcrumbItem[];
-  selectedRows: FileItem[];
-  loading: boolean;
-  data: FileItem[];
-  sortField: 'name' | 'updated_at';
-  sortOrder: 'asc' | 'desc';
-  pagination: PaginationState;
-  searchKey: string;
-  isSearchMode: boolean;
-  isLoadingPath: boolean;
 }

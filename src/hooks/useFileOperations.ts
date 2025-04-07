@@ -2,16 +2,15 @@ import { message } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
-  getFileList,
-  createFolder,
-  deleteFile,
+  //createFolder,
+  //deleteFile,
   downloadFile,
-  moveFiles,
+  //moveFiles,
   uploadFile,
   searchFiles,
   renameFile as renameFileApi,
-  getFilePathById,
-  getFileIdPath,
+  // getFilePathById,
+  // getFileIdPath,
 } from '../services/api';
 import { FileItem, BreadcrumbItem } from '../types/cloudDrive';
 import { RootState } from '../store';
@@ -26,6 +25,7 @@ import {
   setIsLoadingPath,
 } from '../store/cloudDriveSlice';
 import { downloadBlob } from '../utils/fileUtils';
+import { cloudDriveService } from '../services/cloudDriveService';
 
 export const useFileOperations = () => {
   const dispatch = useDispatch();
@@ -53,7 +53,7 @@ export const useFileOperations = () => {
         });
       } else {
         const currentFolder = currentPath[currentPath.length - 1];
-        response = await getFileList({
+        response = await cloudDriveService.getFileList({
           parent_id: currentFolder.id || undefined,
           page,
           page_size: pageSize,
@@ -110,7 +110,7 @@ export const useFileOperations = () => {
 
     try {
       const currentFolder = currentPath[currentPath.length - 1];
-      const response = await createFolder({
+      const response = await cloudDriveService.createFolder({
         name: name.trim(),
         parent_id: currentFolder.id || undefined,
       });
@@ -131,7 +131,7 @@ export const useFileOperations = () => {
 
   const handleDelete = async (fileIds: string[]) => {
     try {
-      await Promise.all(fileIds.map(id => deleteFile(id)));
+      await Promise.all(fileIds.map(id => cloudDriveService.deleteFile(id)));
       message.success('删除成功');
       dispatch(setSelectedRows([]));
       fetchFileList();
@@ -144,7 +144,7 @@ export const useFileOperations = () => {
 
   const handleMove = async (fileIds: string[], targetId?: string) => {
     try {
-      const response = await moveFiles({
+      const response = await cloudDriveService.moveFiles({
         files_pid: fileIds,
         target_pid: targetId,
       });
@@ -212,8 +212,8 @@ export const useFileOperations = () => {
     dispatch(setIsLoadingPath(true));
     try {
       const [pathResponse, idPathResponse] = await Promise.all([
-        getFilePathById(fileId),
-        getFileIdPath(fileId)
+        cloudDriveService.getFilePathById(fileId),
+        cloudDriveService.getFileIdPath(fileId)
       ]);
 
       if (pathResponse.code === 0 && idPathResponse.code === 0) {
@@ -271,7 +271,6 @@ export const useFileOperations = () => {
     handleRename,
     getFilePath,
     handleSearch,
-    handleClearSearch,
-    getFileList,
+    handleClearSearch
   };
 }; 

@@ -2,7 +2,9 @@ import React, { useEffect } from 'react';
 import { Modal, Table, Breadcrumb, message } from 'antd';
 import { FileOutlined, FolderOutlined } from '@ant-design/icons';
 import type { FileItem } from '../../services/api';
-import { getFileList } from '../../services/api';
+//import { getFileList } from '../../services/api';
+
+import { cloudDriveService } from '../../services/cloudDriveService';
 
 interface ImportModalProps {
   visible: boolean;
@@ -35,7 +37,7 @@ const ImportModal: React.FC<ImportModalProps> = ({
   const fetchFileList = async (parentId?: string) => {
     setFileLoading(true);
     try {
-      const res = await getFileList({
+      const res = await cloudDriveService.getFileList({
         parent_id: parentId,
         page: 1,
         page_size: 999,
