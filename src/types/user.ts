@@ -1,11 +1,5 @@
-// 通用响应类型
-export interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-}
+import { ApiResponse } from './common';
 
-// 用户相关类型
 export interface LoginRequest {
   username: string;
   password: string;

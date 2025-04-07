@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { login as loginAction } from '../store/authSlice';
 import { userService } from '../services/userService';
-import type { LoginRequest } from '../types/api';
+import { LoginRequest } from '../types/user';
 
 // 定义登录表单的数据结构
 interface LoginForm {

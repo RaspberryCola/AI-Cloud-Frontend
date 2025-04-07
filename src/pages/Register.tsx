@@ -3,7 +3,7 @@ import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import { useNavigate, Link } from 'react-router-dom';
 import { userService } from '../services/userService';
-import type { RegisterRequest } from '../types/api';
+import { RegisterRequest } from '../types/user';
 
 
 interface RegisterForm {

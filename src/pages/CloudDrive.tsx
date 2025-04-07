@@ -11,6 +11,8 @@ import { RootState } from '../store';
 import { setCurrentPath, setSelectedRows, setSortField, setSortOrder, setSearchKey, setIsSearchMode } from '../store/cloudDriveSlice';
 import type { FileItem, BreadcrumbItem } from '../types/cloudDrive';
 
+import { cloudDriveService } from '../services/cloudDriveService';
+
 const CloudDrive: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -38,7 +40,7 @@ const CloudDrive: React.FC = () => {
     getFilePath,
     handleSearch,
     handleClearSearch,
-    getFileList,
+    //getFileList,
   } = useFileOperations();
 
   const [isNewFolderModalVisible, setIsNewFolderModalVisible] = useState(false);
@@ -115,8 +117,9 @@ const CloudDrive: React.FC = () => {
     setSelectedFolderId(undefined);
     setMoveTargetPath([{ id: null, name: '根目录' }]);
     setIsMoveModalVisible(true);
+
     // 获取根目录下的文件夹列表
-    getFileList({
+    cloudDriveService.getFileList({
       parent_id: undefined,
       page: 1,
       page_size: 999,
@@ -174,7 +177,7 @@ const CloudDrive: React.FC = () => {
     setSelectedFolderId(record.ID);
     setMoveTargetPath([...moveTargetPath, { id: record.ID, name: record.Name }]);
     // 获取点击的文件夹下的子文件夹列表
-    const response = await getFileList({
+    const response = await cloudDriveService.getFileList({
       parent_id: record.ID,
       page: 1,
       page_size: 999,
@@ -192,7 +195,7 @@ const CloudDrive: React.FC = () => {
     const targetFolder = newPath[newPath.length - 1];
     setSelectedFolderId(targetFolder.id || undefined);
     // 获取面包屑导航点击后的文件夹列表
-    const response = await getFileList({
+    const response = await cloudDriveService.getFileList({
       parent_id: targetFolder.id || undefined,
       page: 1,
       page_size: 999,
