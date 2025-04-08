@@ -3,27 +3,6 @@
 ## 项目简介
 基于 React + TypeScript 开发的云盘知识库管理系统，提供文件管理及知识库的创建、管理、检索和对话等功能。
 
-## 主要功能
-### ☁️ 在线云盘
-- 文件上传/下载/删除/管理
-- 从云盘导入文件到知识库
-
-### 📚 知识库管理
-- 知识库的创建/更新/删除
-- 文档批量导入和管理
-- 文档在线预览
-
-### 🔍 知识检索
-- 基于向量的相似度检索
-- 支持自定义检索参数(top-k)
-- 实时召回测试
-
-### 💬 智能对话
-- 基于知识库的问答
-- 流式响应
-- Markdown格式输出
-
-
 ## 技术栈
 - 前端框架: React
 - 开发语言: TypeScript
@@ -31,6 +10,35 @@
 - 样式方案: Tailwind CSS
 - 构建工具: Vite
 - 状态管理: Redux Toolkit
+
+## 主要功能
+### ☁️ 在线云盘
+- 文件上传/下载/删除/管理
+- 从云盘导入文件到知识库
+
+![云盘界面](https://smkl-pics.oss-cn-hangzhou.aliyuncs.com/AI-Cloud/CloudDrive.png)
+
+### 📚 知识库管理
+- 知识库的创建/更新/删除
+- 文档批量导入和管理
+
+![知识库界面](https://smkl-pics.oss-cn-hangzhou.aliyuncs.com/AI-Cloud/KBList.png)
+![知识库详情](https://smkl-pics.oss-cn-hangzhou.aliyuncs.com/AI-Cloud/LittlePrinceKB.png)
+
+### 🔍 知识检索
+- 基于向量的相似度检索
+- 支持自定义检索参数(top-k)
+- 实时召回测试
+
+![知识检索](https://smkl-pics.oss-cn-hangzhou.aliyuncs.com/AI-Cloud/LittlePrinceRetrieve.png)
+
+### 💬 智能对话
+- 基于知识库的问答
+- 流式响应
+- Markdown格式输出
+
+![知识库对话](https://smkl-pics.oss-cn-hangzhou.aliyuncs.com/AI-Cloud/LittlePrinceChat.png)
+
 
 ## 快速开始
 
