@@ -8,6 +8,7 @@ import CloudDrive from './pages/CloudDrive';
 import KnowledgeBase from './pages/KnowledgeBase';
 import KnowledgeDetail from './pages/KnowledgeDetail';
 import Agent from './pages/Agent';
+import ModelService from './pages/ModelService';
 import { RootState } from './store';
 
 const App: React.FC = () => {
@@ -25,6 +26,7 @@ const App: React.FC = () => {
           <Route path="knowledge-base" element={<KnowledgeBase />} />
           <Route path="knowledge-base/:id" element={<KnowledgeDetail />} />
           <Route path="agent" element={<Agent />} />
+          <Route path="model-service" element={<ModelService />} />
         </Route>
       </Routes>
     </Router>
