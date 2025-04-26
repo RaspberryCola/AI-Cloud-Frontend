@@ -1,6 +1,7 @@
 import React from 'react';
 import { Table, Space, Tag, Button} from 'antd';
 import { EyeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Modal } from 'antd';
 import { KnowledgeDocItem } from '../../types/knowledge';
 
 interface DocumentListProps {
@@ -10,6 +11,7 @@ interface DocumentListProps {
   currentPage: number;
   pageSize: number;
   onPageChange: (page: number, pageSize: number) => void;
+  onDelete: (id: string) => void; // Change id type to string
   rowSelection: any;
 }
 
@@ -20,6 +22,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
   currentPage,
   pageSize,
   onPageChange,
+  onDelete, // Destructure onDelete
   rowSelection,
 }) => {
   return (
@@ -95,7 +98,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
           title: '操作',
           key: 'action',
           width: 150,
-          render: () => (
+          render: (_: any, record: KnowledgeDocItem) => ( // Receive record
             <Space size="small">
               <Button 
                 type="text" 
@@ -109,6 +112,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 icon={<DeleteOutlined />}
                 className="text-red-500 hover:text-red-600"
                 danger
+                onClick={() => onDelete(record.ID)} // Add onClick handler
               />
             </Space>
           )

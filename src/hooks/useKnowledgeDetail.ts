@@ -150,6 +150,36 @@ export const useKnowledgeDetail = (id: string | undefined) => {
     });
   };
 
+  // Function to handle single document deletion
+  const handleDeleteDocument = (docId: string) => {
+    if (!id) return;
+
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除这个文档吗？`,
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      async onOk() {
+        try {
+          const res = await knowledgeService.deleteKnowledgeDocs({
+            kb_id: id,
+            doc_ids: [docId] // Pass the single docId in an array
+          });
+          if (res.code === 0) {
+            message.success('删除成功');
+            // Refresh the list - consider resetting to page 1 if the current page becomes empty
+            fetchDocList(currentPage, pageSize); 
+          } else {
+            message.error(res.message || '删除失败');
+          }
+        } catch (error) {
+          message.error('删除失败');
+        }
+      },
+    });
+  };
+
   return {
     loading,
     kbName,
@@ -173,5 +203,6 @@ export const useKnowledgeDetail = (id: string | undefined) => {
     formatFileSize,
     onSelectChange,
     handleBatchDelete,
+    handleDeleteDocument, // Expose the new function
   };
 };

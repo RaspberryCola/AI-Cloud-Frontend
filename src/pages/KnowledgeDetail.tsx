@@ -36,6 +36,7 @@ const KnowledgeDetail: React.FC = () => {
     formatFileSize,
     onSelectChange,
     handleBatchDelete,
+    handleDeleteDocument, // Destructure the new function
   } = useKnowledgeDetail(id);
 
   
@@ -147,6 +148,7 @@ const KnowledgeDetail: React.FC = () => {
                 currentPage={currentPage}
                 pageSize={pageSize}
                 onPageChange={handlePageChange}
+                onDelete={handleDeleteDocument} // Pass the function as a prop
                 rowSelection={rowSelection}
               />
             </>
