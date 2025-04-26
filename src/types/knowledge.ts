@@ -17,6 +17,7 @@ export interface KnowledgeListParams {
 export interface CreateKBRequest {
     name: string;
     description?: string;
+    embed_model_id: string;
 }
 
 export interface UpdateKBRequest {
