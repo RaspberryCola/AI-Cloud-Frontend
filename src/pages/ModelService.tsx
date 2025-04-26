@@ -52,7 +52,13 @@ const ModelService: React.FC = () => {
   const showCreateModal = (type: 'llm' | 'embedding') => {
     setModelType(type);
     form.resetFields();
-    form.setFieldsValue({ type, server: 'openai' });
+    form.setFieldsValue({
+      type,
+      server: 'openai',
+      max_tokens: type === 'llm' ? 8192 : 2048,
+      max_output_length: 4096,
+      function: false
+    });
     setModalVisible(true);
   };
 
