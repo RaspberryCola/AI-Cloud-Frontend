@@ -130,7 +130,10 @@ export const useKnowledgeDetail = (id: string | undefined) => {
       cancelText: '取消',
       async onOk() {
         try {
+          if (!id) return false;
+          
           const res = await knowledgeService.deleteKnowledgeDocs({
+            kb_id: id,
             doc_ids: selectedRowKeys
           });
           if (res.code === 0) {

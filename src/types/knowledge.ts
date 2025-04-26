@@ -45,6 +45,7 @@ export interface KnowledgeDocListParams {
 }
 
 export interface DeleteKnowledgeDocsRequest {
+    kb_id: string;
     doc_ids: string[];
 }
 
