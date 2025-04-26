@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, Card, Tabs, Button, Table, Space, Modal, Form, Input, Select, InputNumber, Switch, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { modelService } from '../services/modelService';
-import { ModelItem, ModelType, ModelServer, CreateModelRequest } from '../types/model';
+import { ModelItem, ModelType, ModelServer, CreateModelRequest, UpdateModelRequest } from '../types/model';
 
 const { Title } = Typography;
 const { TabPane } = Tabs;
@@ -12,8 +12,11 @@ const ModelService: React.FC = () => {
   const [models, setModels] = useState<ModelItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const [modelType, setModelType] = useState<'llm' | 'embedding'>('llm');
+  const [currentModel, setCurrentModel] = useState<ModelItem | null>(null);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const fetchModels = async (type?: ModelType) => {
     try {
@@ -73,6 +76,62 @@ const ModelService: React.FC = () => {
     }
   };
 
+  const showEditModal = async (modelId: string) => {
+    try {
+      setLoading(true);
+      const res = await modelService.getModelDetail(modelId);
+      if (res.code === 0) {
+        const modelData = res.data;
+        setCurrentModel(modelData);
+        setModelType(modelData.Type as 'llm' | 'embedding');
+        
+        // 将后端数据格式转换为表单数据格式
+        editForm.setFieldsValue({
+          id: modelData.ID,
+          type: modelData.Type,
+          name: modelData.ShowName,
+          server: modelData.Server,
+          base_url: modelData.BaseURL,
+          model: modelData.ModelName,
+          api_key: modelData.APIKey,
+          max_tokens: modelData.MaxTokens,
+          max_output_length: modelData.MaxOutputLength,
+          function: modelData.Function,
+          dimension: modelData.Dimension
+        });
+        
+        setEditModalVisible(true);
+      } else {
+        message.error(res.message || '获取模型详情失败');
+      }
+    } catch (error) {
+      console.error('获取模型详情失败:', error);
+      message.error('获取模型详情失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateModel = async () => {
+    try {
+      const values = await editForm.validateFields();
+      setLoading(true);
+      const res = await modelService.updateModel(values as UpdateModelRequest);
+      if (res.code === 0) {
+        message.success('更新模型成功');
+        setEditModalVisible(false);
+        fetchModels(activeTab === 'all' ? undefined : activeTab as ModelType);
+      } else {
+        message.error(res.message || '更新模型失败');
+      }
+    } catch (error) {
+      console.error('更新模型失败:', error);
+      message.error('更新模型失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (modelId: string) => {
     Modal.confirm({
       title: '确认删除',
@@ -119,7 +178,7 @@ const ModelService: React.FC = () => {
       key: 'action',
       render: (_: any, record: ModelItem) => (
         <Space size="middle">
-          <Button type="text" icon={<EditOutlined />}>编辑</Button>
+          <Button type="text" icon={<EditOutlined />} onClick={() => showEditModal(record.ID)}>编辑</Button>
           <Button type="text" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.ID)}>删除</Button>
         </Space>
       ),
@@ -236,6 +295,111 @@ const ModelService: React.FC = () => {
           </Form.Item>
 
           {modelType === 'llm' && (
+            <>
+              <Form.Item
+                name="max_output_length"
+                label="最大输出长度"
+              >
+                <InputNumber min={1} style={{ width: '100%' }} />
+              </Form.Item>
+
+              <Form.Item
+                name="function"
+                label="支持Function Call"
+                valuePropName="checked"
+              >
+                <Switch />
+              </Form.Item>
+            </>
+          )}
+        </Form>
+      </Modal>
+
+      <Modal
+        title={currentModel?.Type === 'llm' ? '编辑LLM模型' : '编辑Embedding模型'}
+        open={editModalVisible}
+        onOk={handleUpdateModel}
+        onCancel={() => setEditModalVisible(false)}
+        confirmLoading={loading}
+        width={600}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          initialValues={{
+            type: currentModel?.Type,
+            server: currentModel?.Server || 'openai',
+          }}
+        >
+          <Form.Item name="id" hidden>
+            <Input />
+          </Form.Item>
+
+          <Form.Item name="type" hidden>
+            <Input />
+          </Form.Item>
+
+          <Form.Item
+            name="name"
+            label="模型名称"
+            rules={[{ required: true, message: '请输入模型名称' }]}
+          >
+            <Input placeholder="请输入模型显示名称" />
+          </Form.Item>
+
+          <Form.Item
+            name="server"
+            label="服务商"
+            rules={[{ required: true, message: '请选择服务商' }]}
+          >
+            <Select>
+              <Select.Option value="openai">OpenAI</Select.Option>
+              <Select.Option value="ollama">Ollama</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="base_url"
+            label="API地址"
+            rules={[{ required: true, message: '请输入API地址' }]}
+          >
+            <Input placeholder="请输入API地址" />
+          </Form.Item>
+
+          <Form.Item
+            name="model"
+            label="模型名称"
+            rules={[{ required: true, message: '请输入模型名称' }]}
+          >
+            <Input placeholder="请输入模型名称" />
+          </Form.Item>
+
+          <Form.Item
+            name="api_key"
+            label="API密钥"
+            rules={[{ required: false, message: '请输入API密钥' }]}
+          >
+            <Input.Password placeholder="请输入API密钥" />
+          </Form.Item>
+
+          {currentModel?.Type === 'embedding' && (
+            <Form.Item
+              name="dimension"
+              label="向量维度"
+              rules={[{ required: true, message: '请输入向量维度' }]}
+            >
+              <InputNumber min={1} style={{ width: '100%' }} />
+            </Form.Item>
+          )}
+
+          <Form.Item
+            name="max_tokens"
+            label="最大输入长度"
+          >
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+
+          {currentModel?.Type === 'llm' && (
             <>
               <Form.Item
                 name="max_output_length"

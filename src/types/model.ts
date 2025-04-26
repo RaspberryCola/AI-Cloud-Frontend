@@ -48,3 +48,30 @@ export interface CreateEmbeddingModelRequest {
 }
 
 export type CreateModelRequest = CreateLLMModelRequest | CreateEmbeddingModelRequest;
+
+export interface UpdateLLMModelRequest {
+  id: string;
+  type: 'llm';
+  name: string;
+  server: ModelServer;
+  base_url: string;
+  model: string;
+  api_key: string;
+  max_tokens?: number;
+  function?: boolean;
+  max_output_length?: number;
+}
+
+export interface UpdateEmbeddingModelRequest {
+  id: string;
+  type: 'embedding';
+  name: string;
+  server: ModelServer;
+  base_url: string;
+  model: string;
+  api_key: string;
+  dimension: number;
+  max_tokens?: number;
+}
+
+export type UpdateModelRequest = UpdateLLMModelRequest | UpdateEmbeddingModelRequest;

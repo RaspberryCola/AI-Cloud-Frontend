@@ -3,7 +3,8 @@ import { ApiResponse } from "../types/common";
 import { 
   ModelItem, 
   ModelListParams, 
-  CreateModelRequest
+  CreateModelRequest,
+  UpdateModelRequest
 } from "../types/model";
 
 class ModelService {
@@ -27,8 +28,16 @@ class ModelService {
     return httpClient.post('/model/create', data);
   }
 
+  async getModelDetail(modelId: string): Promise<ApiResponse<ModelItem>> {
+    return httpClient.get(`/model/get?model_id=${modelId}`);
+  }
+
+  async updateModel(data: UpdateModelRequest): Promise<ApiResponse<null>> {
+    return httpClient.put('/model/update', data);
+  }
+
   async deleteModel(modelId: string): Promise<ApiResponse<null>> {
-    return httpClient.delete(`/model/delete/${modelId}`);
+    return httpClient.delete(`/model/delete?model_id=${modelId}`);
   }
 }
 
