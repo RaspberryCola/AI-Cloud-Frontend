@@ -71,16 +71,20 @@ const DocumentList: React.FC<DocumentListProps> = ({
           title: '解析状态',
           dataIndex: 'Status',
           width: 150,
-          render: (status: number) => (
-            <Tag color={{
-              2: 'success',
-              1: 'warning',
-              0: 'error'
-            }[status]} className="px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
-              {status === 2 ? '已完成' : 
-               status === 1 ? '处理中' : '失败'}
-            </Tag>
-          )
+          render: (status: number) => {
+            const statusMap: { [key: number]: { text: string; color: string } } = {
+              0: { text: '待处理', color: 'default' },
+              1: { text: '解析中', color: 'processing' },
+              2: { text: '解析成功', color: 'success' },
+              3: { text: '解析失败', color: 'error' },
+            };
+            const currentStatus = statusMap[status] || { text: '未知', color: 'default' };
+            return (
+              <Tag color={currentStatus.color} className="px-2 py-0.5 rounded-full text-xs whitespace-nowrap">
+                {currentStatus.text}
+              </Tag>
+            );
+          }
         },
         // {
         //   title: '启用状态',
