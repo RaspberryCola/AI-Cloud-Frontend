@@ -1,5 +1,5 @@
 import React from 'react';
-import { message, Modal } from 'antd';
+import { message, Modal, Upload } from 'antd'; // Import Upload
 import { knowledgeService } from '../services/knowledgeService';
 import { KnowledgeDocItem } from '../types/knowledge';
 
@@ -62,15 +62,20 @@ export const useKnowledgeDetail = (id: string | undefined) => {
 
   const handleImport = async () => {
     if (!id || !selectedFileId) return;
+    // Close modal immediately
+    setImportModalVisible(false); 
+    message.info('文件导入任务已开始，请稍后刷新查看...'); // Inform user processing started
     try {
       const res = await knowledgeService.importCloudFileToKnowledge({
         file_id: selectedFileId,
         kb_id: id
       });
       if (res.code === 0) {
-        message.success('导入文件成功');
-        setImportModalVisible(false);
-        fetchDocList(currentPage, pageSize);
+        // Refresh list after API call (might not show immediately)
+        fetchDocList(currentPage, pageSize); 
+        // Optional: Add a success message confirming API call success, 
+        // but the main feedback is the 'info' message above.
+        // message.success('导入请求已发送'); 
       } else {
         message.error(res.message || '导入文件失败');
       }
@@ -79,24 +84,35 @@ export const useKnowledgeDetail = (id: string | undefined) => {
     }
   };
 
-  const handleUpload = async (file: File) => {
-    if (!id) return false;
-    try {
-      const res = await knowledgeService.uploadFileToKnowledge({
-        kb_id: id,
-        file: file
-      });
-      if (res.code === 0) {
-        message.success('上传文件成功');
-        setUploadModalVisible(false);
+  // Make the function synchronous to match Ant Design's beforeUpload signature expectation
+  const handleUpload = (file: File) => { 
+    if (!id) return false; // Return false if no ID, preventing upload attempt
+    // Close modal immediately
+    setUploadModalVisible(false);
+    message.info('文件上传任务已开始，请稍后刷新查看...'); // Inform user processing started
+
+    // Initiate the async call but don't await it here
+    knowledgeService.uploadFileToKnowledge({ 
+      kb_id: id,
+      file: file
+    }).then(res => {
+      // Handle success: Refresh list after API call completes
+      if (res.code === 0) { 
         fetchDocList(currentPage, pageSize);
+        // Optional: Add a success message confirming API call success
+        // message.success('上传请求已发送');
       } else {
-        message.error(res.message || '上传文件失败');
+        // Handle API error after completion
+        message.error(res.message || '上传文件失败'); 
       }
-    } catch (error) {
-      message.error('上传文件失败');
-    }
-    return false;
+    }).catch(error => {
+      // Handle network/unexpected errors after completion
+      message.error('上传文件失败'); 
+      console.error('Upload error:', error); // Log error for debugging
+    });
+
+    // Return Upload.LIST_IGNORE immediately to prevent default behavior without signaling error
+    return Upload.LIST_IGNORE; 
   };
 
   const handlePageChange = (page: number, pageSize: number) => {

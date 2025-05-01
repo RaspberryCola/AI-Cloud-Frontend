@@ -69,12 +69,14 @@ export interface RetrieveRequest {
 export interface RetrieveItem {
     id: string;
     content: string;
-    kb_id: string;
-    document_id: string;
-    document_name: string;
-    index: number;
-    embeddings: any;
-    score: number;
+    meta_data: {
+        _source: string;
+        chunk_index: number;
+        document_id: string;
+        document_name: string;
+        kb_id: string;
+        score: number;
+    };
 }
 
 export interface KnowledgeChatStreamRequest {

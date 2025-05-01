@@ -100,14 +100,14 @@ const RetrieveTest: React.FC<RetrieveTestProps> = ({ kbId }) => {
             <Card key={item.id} className="shadow-sm">
               <div className="flex justify-between items-start mb-2">
                 <Text strong>Chunk-{String(index + 1).padStart(2, '0')}</Text>
-                <Text type="secondary">得分: {item.score.toFixed(4)}</Text>
+                <Text type="secondary">得分: {item.meta_data.score.toFixed(4)}</Text>
               </div>
               <div className="mb-2">
                 <Text>{item.content}</Text>
               </div>
               <div>
                 <Text type="secondary" className="text-sm">
-                  {item.document_name} / index-{item.index}
+                  {item.meta_data.document_name} / index-{item.meta_data.chunk_index}
                 </Text>
               </div>
             </Card>
