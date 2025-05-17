@@ -28,11 +28,10 @@ import { ModelItem } from '../types/model';
 import { KnowledgeItem } from '../types/knowledge';
 import { useDebugChat } from '../hooks/useDebugChat';
 
-import './markdown-styles.css'; // We'll create this file later
+import './markdown-styles.css';
 
-const { Header, Content } = Layout;
+const { Content } = Layout;
 const { TextArea } = Input;
-const { TabPane } = Tabs;
 
 const AgentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,7 +49,6 @@ const AgentDetail: React.FC = () => {
   const [llmModels, setLLMModels] = useState<ModelItem[]>([]);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeItem[]>([]);
   
-  // Use our new debug chat hook
   const {
     messages: chatMessages,
     userInput,
@@ -149,7 +147,6 @@ const AgentDetail: React.FC = () => {
       const values = await form.validateFields();
       setSaving(true);
       
-      // Flatten form values into agent format
       const updateData = {
         id: id!,
         name: values.name,
@@ -173,7 +170,7 @@ const AgentDetail: React.FC = () => {
         },
       };
       
-      // @ts-ignore - Ignoring TypeScript errors for the updateAgent call
+      // @ts-ignore
       const res = await agentService.updateAgent(updateData);
       if (res.code === 0) {
         message.success('保存成功');
@@ -219,7 +216,7 @@ const AgentDetail: React.FC = () => {
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-full">
         <Spin size="large" tip="加载中..." />
       </div>
     );
@@ -228,123 +225,112 @@ const AgentDetail: React.FC = () => {
   const selectedModel = llmModels.find(model => model.ID === form.getFieldValue('llm_config.model_id'));
   
   return (
-    <Layout className="h-screen overflow-hidden bg-white">
-      <Header className="bg-white border-b flex items-center justify-between px-6 h-14 shadow-sm">
+    <div className="flex flex-col h-full">
+      {/* 页面顶部操作栏 */}
+      <div className="bg-white border-b flex items-center justify-between px-4 py-2 mb-4 rounded-md shadow-sm">
         <div className="flex items-center">
           <Button
             icon={<LeftOutlined />}
             type="text"
             onClick={() => navigate('/agent')}
-            className="rounded-full hover:bg-gray-100 focus:outline-none"
+            className="mr-4"
           />
-          <div className="flex items-center ml-4">
-            <span className="text-lg font-semibold">{agent?.name || 'Agent详情'}</span>
+          <div className="flex items-center">
+            <span className="text-lg font-semibold truncate max-w-xs">{agent?.name || 'Agent详情'}</span>
             {agent?.description && (
-              <span className="text-gray-500 ml-2 text-sm">({agent.description})</span>
+              <span className="text-gray-500 ml-2 text-sm hidden sm:inline truncate max-w-xs">({agent.description})</span>
             )}
             <Button 
               icon={<EditOutlined />} 
               type="text" 
               size="small" 
-              className="ml-2 rounded-full hover:bg-gray-100 focus:outline-none"
+              className="ml-2"
               onClick={() => setEditNameModalVisible(true)}
             />
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex gap-2 sm:gap-3">
           <Button 
             type="default"
             icon={<LinkOutlined />}
             onClick={() => window.open(`/chat/${id}`, '_blank')}
-            className="rounded-md focus:outline-none active:outline-none"
           >
-            使用线上版本
+            使用
           </Button>
           <Button 
             type="primary" 
             icon={<SaveOutlined />} 
             onClick={handleSave}
             loading={saving}
-            className="rounded-md focus:outline-none active:outline-none"
           >
             保存
           </Button>
         </div>
-      </Header>
+      </div>
 
-      <Content className="overflow-hidden">
-        <div className="flex h-[calc(100vh-56px)]">
+      {/* 主内容区域，自适应高度 */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex w-full h-full">
           {/* 左侧编辑区域 */}
-          <div className="w-1/2 overflow-auto p-4">
-            <Card className="h-full overflow-auto" bodyStyle={{ padding: "16px" }}>
+          <div className="w-1/2 flex flex-col overflow-hidden pr-2">
+            <Card className="flex-1 overflow-auto" bodyStyle={{ padding: "16px", height: '100%' }}>
               <Form
                 form={form}
                 layout="vertical"
-                className="space-y-2"
+                className="h-full overflow-auto pr-1"
               >
                 {/* LLM配置 */}
-                <div className="text-base font-medium mb-2">
-                  <span className="inline-flex items-center justify-between w-full">
-                    <span className="inline-flex items-center gap-2">
-                      <ThunderboltOutlined className="text-purple-600" />
-                      LLM配置
-                    </span>
-                    <Button 
-                      type="text" 
-                      icon={<SettingOutlined />} 
-                      size="small"
-                      onClick={() => setShowLLMSettingsModal(true)}
-                      className="rounded-full hover:bg-gray-100 focus:outline-none active:outline-none"
-                    />
-                  </span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <ThunderboltOutlined className="text-purple-600" />
+                    <span className="text-base font-medium">LLM配置</span>
+                  </div>
+                  <Button 
+                    type="text" 
+                    icon={<SettingOutlined />} 
+                    size="small"
+                    onClick={() => setShowLLMSettingsModal(true)}
+                  />
                 </div>
                 
-                <Row gutter={16} className="mb-2">
-                  <Col span={24}>
-                    <Form.Item
-                      name="llm_config.model_id"
-                      rules={[{ required: true, message: '请选择AI模型' }]}
-                      className="mb-1"
-                    >
-                      <Select
-                        placeholder="请选择AI模型"
-                        options={llmModels.map(model => ({
-                          label: model.ShowName,
-                          value: model.ID
-                        }))}
-                        notFoundContent="暂无可用的AI模型"
-                        size="middle"
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <Divider className="my-2" />
-                
-                {/* 提示词部分 */}
-                <div className="text-base font-medium mb-2">
-                  <span className="inline-flex items-center gap-2">
-                    <SendOutlined className="text-blue-600" />
-                    提示词
-                  </span>
-                </div>
-                <Form.Item name="prompt" className="mb-2">
-                  <TextArea
-                    placeholder="在这里输入你的提示词，输入'/'可选择变量"
-                    autoSize={{ minRows: 4, maxRows: 6 }}
+                <Form.Item
+                  name="llm_config.model_id"
+                  rules={[{ required: true, message: '请选择AI模型' }]}
+                  className="mb-4"
+                >
+                  <Select
+                    placeholder="请选择AI模型"
+                    options={llmModels.map(model => ({
+                      label: model.ShowName,
+                      value: model.ID
+                    }))}
+                    notFoundContent="暂无可用的AI模型"
                   />
                 </Form.Item>
 
-                <Divider className="my-2" />
+                <Divider className="my-3" />
+                
+                {/* 提示词部分 */}
+                <div className="flex items-center gap-2 mb-2">
+                  <SendOutlined className="text-blue-600" />
+                  <span className="text-base font-medium">提示词</span>
+                </div>
+                <Form.Item name="prompt" className="mb-4">
+                  <TextArea
+                    placeholder="在这里输入你的提示词，输入'/'可选择变量"
+                    autoSize={{ minRows: 4, maxRows: 6 }}
+                    className="resize-none"
+                  />
+                </Form.Item>
+
+                <Divider className="my-3" />
                 
                 {/* 知识库部分 */}
-                <div className="text-base font-medium mb-2">
-                  <span className="inline-flex items-center gap-2">
-                    <DatabaseOutlined className="text-blue-600" />
-                    知识库
-                  </span>
+                <div className="flex items-center gap-2 mb-2">
+                  <DatabaseOutlined className="text-blue-600" />
+                  <span className="text-base font-medium">知识库</span>
                 </div>
-                <Form.Item name="knowledge.knowledge_ids" className="mb-2">
+                <Form.Item name="knowledge.knowledge_ids" className="mb-4">
                   <Select
                     mode="multiple"
                     placeholder="请选择关联的知识库"
@@ -354,43 +340,36 @@ const AgentDetail: React.FC = () => {
                     }))}
                     optionFilterProp="label"
                     notFoundContent="暂无可用的知识库"
-                    size="middle"
                   />
                 </Form.Item>
 
-                <Divider className="my-2" />
+                <Divider className="my-3" />
                 
                 {/* MCP服务 */}
-                <div className="text-base font-medium mb-2">
-                  <span className="inline-flex items-center gap-2">
-                    <CloudServerOutlined className="text-green-600" />
-                    MCP服务
-                  </span>
+                <div className="flex items-center gap-2 mb-2">
+                  <CloudServerOutlined className="text-green-600" />
+                  <span className="text-base font-medium">MCP服务</span>
                 </div>
-                <Form.Item name="mcp.servers" className="mb-2">
+                <Form.Item name="mcp.servers" className="mb-4">
                   <Select
                     mode="tags"
                     placeholder="请输入MCP服务器URL"
                     tokenSeparators={[',']}
-                    size="middle"
                   />
                 </Form.Item>
 
-                <Divider className="my-2" />
+                <Divider className="my-3" />
                 
                 {/* 工具调用部分 */}
-                <div className="text-base font-medium mb-2">
-                  <span className="inline-flex items-center gap-2">
-                    <ToolOutlined className="text-purple-600" />
-                    工具调用
-                  </span>
+                <div className="flex items-center gap-2 mb-2">
+                  <ToolOutlined className="text-purple-600" />
+                  <span className="text-base font-medium">工具调用</span>
                 </div>
-                <Form.Item name="tools.tool_ids" className="mb-2">
+                <Form.Item name="tools.tool_ids" className="mb-4">
                   <Select
                     mode="multiple"
                     placeholder="暂不支持工具配置"
                     disabled
-                    size="middle"
                   />
                 </Form.Item>
               </Form>
@@ -398,7 +377,7 @@ const AgentDetail: React.FC = () => {
           </div>
 
           {/* 右侧预览与测试区域 */}
-          <div className="w-1/2 p-4">
+          <div className="w-1/2 flex flex-col overflow-hidden pl-2">
             <Card 
               title="调试与预览"
               extra={
@@ -407,21 +386,21 @@ const AgentDetail: React.FC = () => {
                   icon={<SettingOutlined />} 
                   onClick={handleClearChat}
                   size="small"
-                  className="rounded-full hover:bg-gray-100 focus:outline-none active:outline-none"
                 >
                   清空对话
                 </Button>
               }
-              className="h-full flex flex-col overflow-hidden"
+              className="flex-1 flex flex-col overflow-hidden"
               bodyStyle={{ 
-                height: 'calc(100% - 56px)', 
+                padding: 0,
+                flex: 1,
                 display: 'flex', 
                 flexDirection: 'column',
-                padding: '12px',
                 overflow: 'hidden'
               }}
             >
-              <div className="flex-1 overflow-auto mb-3 space-y-3" style={{ height: 'calc(100% - 50px)' }}>
+              {/* 对话内容区域 */}
+              <div className="flex-1 overflow-auto p-4 space-y-4">
                 {chatMessages.map((message, index) => (
                   <div
                     key={index}
@@ -473,7 +452,8 @@ const AgentDetail: React.FC = () => {
                 )}
               </div>
 
-              <div className="border-t pt-3">
+              {/* 输入区域 */}
+              <div className="border-t p-3 bg-white flex-shrink-0">
                 <div className="relative">
                   <Input
                     value={userInput}
@@ -486,7 +466,6 @@ const AgentDetail: React.FC = () => {
                       }
                     }}
                     disabled={testLoading}
-                    size="middle"
                   />
                   <Button
                     type="primary"
@@ -502,7 +481,7 @@ const AgentDetail: React.FC = () => {
             </Card>
           </div>
         </div>
-      </Content>
+      </div>
       
       {/* 编辑名称和描述的弹窗 */}
       <Modal
@@ -615,7 +594,7 @@ const AgentDetail: React.FC = () => {
           </Form.Item>
         </Form>
       </Modal>
-    </Layout>
+    </div>
   );
 };
 
