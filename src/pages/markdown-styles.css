@@ -1,7 +1,9 @@
 /* Markdown Styles */
 
 .markdown-content {
-  line-height: 1.5;
+  line-height: 1.6;
+  font-size: 14px; /* Standard font size */
+  overflow-x: auto; /* Handle overflow content */
 }
 
 .markdown-content h1,
@@ -10,9 +12,10 @@
 .markdown-content h4,
 .markdown-content h5,
 .markdown-content h6 {
-  margin-top: 1em;
-  margin-bottom: 0.5em;
   font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  line-height: 1.2;
 }
 
 .markdown-content h1 {
@@ -27,14 +30,35 @@
   font-size: 1.2em;
 }
 
+.markdown-content h4 {
+  font-size: 1.1em;
+}
+
+.markdown-content h5 {
+  font-size: 1em;
+}
+
+.markdown-content h6 {
+  font-size: 0.9em;
+}
+
 .markdown-content p {
-  margin: 0.5em 0;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-content strong {
+  font-weight: 600;
+}
+
+.markdown-content em {
+  font-style: italic;
 }
 
 .markdown-content ul,
 .markdown-content ol {
   padding-left: 1.5em;
-  margin: 0.5em 0;
+  margin: 0.75em 0;
 }
 
 .markdown-content li {
@@ -42,32 +66,34 @@
 }
 
 .markdown-content code {
-  font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-  background-color: #f3f4f6;
-  padding: 0.1em 0.3em;
-  border-radius: 3px;
+  font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
   font-size: 0.9em;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .markdown-content pre {
-  background-color: #f3f4f6;
-  border-radius: 4px;
-  padding: 0.75em;
+  margin: 1em 0;
+  padding: 0.5em;
+  border-radius: 6px;
+  background-color: #f6f8fa;
   overflow-x: auto;
-  margin: 0.75em 0;
 }
 
 .markdown-content pre code {
   background-color: transparent;
   padding: 0;
-  white-space: pre;
+  border-radius: 0;
+  font-size: 0.9em;
+  line-height: 1.5;
 }
 
 .markdown-content blockquote {
-  border-left: 3px solid #d1d5db;
   padding-left: 1em;
-  margin: 0.75em 0;
-  color: #6b7280;
+  margin: 1em 0;
+  border-left: 4px solid #ddd;
+  color: #666;
 }
 
 .markdown-content a {
@@ -81,29 +107,36 @@
 
 .markdown-content table {
   border-collapse: collapse;
+  margin: 1em 0;
   width: 100%;
-  margin: 0.75em 0;
+  overflow: auto;
+  display: block;
 }
 
-.markdown-content th,
-.markdown-content td {
-  border: 1px solid #e5e7eb;
-  padding: 0.5em 0.75em;
-  text-align: left;
+.markdown-content table th,
+.markdown-content table td {
+  border: 1px solid #ddd;
+  padding: 0.4em 0.6em;
 }
 
-.markdown-content th {
-  background-color: #f9fafb;
+.markdown-content table th {
   font-weight: 600;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.markdown-content table tr:nth-child(2n) {
+  background-color: #f6f8fa;
 }
 
 .markdown-content img {
   max-width: 100%;
   height: auto;
+  margin: 0.75em 0;
 }
 
 .markdown-content hr {
+  height: 1px;
   border: 0;
-  border-top: 1px solid #e5e7eb;
-  margin: 1em 0;
+  background-color: #ddd;
+  margin: 1.5em 0;
 } 

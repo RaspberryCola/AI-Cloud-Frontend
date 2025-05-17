@@ -1,7 +1,7 @@
 import React from 'react';
 import { Input, Button, Spin, Avatar, message as antdMessage } from 'antd';
 import { SendOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
-import ReactMarkdown from 'react-markdown';
+import { MarkdownRenderer } from '../common';
 import { knowledgeService } from '../../services/knowledgeService';
 
 interface Message {
@@ -144,11 +144,15 @@ const KnowledgeChat: React.FC<KnowledgeChatProps> = ({ kbId }) => {
               className={`max-w-[80%] md:max-w-[45%] inline-flex px-3 py-2 rounded-lg shadow ${
                 msg.sender === 'user'
                   ? 'bg-green-200 text-gray-800'
-                  : 'bg-gray-200 text-gray-800'
+                  : 'bg-gray-200 text-gray-800 markdown-content'
               }`}
             >
               <div className="text-sm prose prose-sm max-w-none dark:prose-invert">
-                <ReactMarkdown>{msg.text}</ReactMarkdown>
+                {msg.sender === 'user' ? (
+                  msg.text
+                ) : (
+                  <MarkdownRenderer content={msg.text} />
+                )}
               </div>
             </div>
             {msg.sender === 'user' && (

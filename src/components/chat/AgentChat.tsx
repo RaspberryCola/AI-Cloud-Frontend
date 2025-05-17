@@ -9,6 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ScrollArea } from '../ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { PlusIcon, SendIcon, TrashIcon, ArrowLeftIcon, AlertCircleIcon } from 'lucide-react';
+import MarkdownRenderer from '../common/MarkdownRenderer';
+
+// Add CSS for Markdown styling
+import '../../styles/markdown-content.css';
 
 const AgentChat: React.FC = () => {
   const { agent_id, conv_id } = useParams<{ agent_id: string; conv_id?: string }>();
@@ -124,29 +128,64 @@ const AgentChat: React.FC = () => {
     return (
       <div 
         key={index}
-        className={`flex mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}
+        className={`flex w-full relative group mb-6 ${isUser ? 'justify-end' : 'justify-start'}`}
       >
+        {/* AI 头像 */}
         {!isUser && (
-          <Avatar className="mr-2 h-8 w-8">
-            <AvatarImage src="/agent-avatar.png" alt="Agent" />
-            <AvatarFallback>AI</AvatarFallback>
-          </Avatar>
+          <div className="flex items-end mr-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="/agent-avatar.png" alt="Agent" />
+              <AvatarFallback>AI</AvatarFallback>
+            </Avatar>
+          </div>
         )}
-        
-        <div 
-          className={`max-w-[80%] rounded-lg p-3 ${
-            isUser 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-muted'
-          }`}
-        >
-          <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+        {/* 消息内容 */}
+        <div className="w-0 max-w-full flex-auto pl-1">
+          <div className="w-full">
+            <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}> 
+              <div
+                className={
+                  `px-5 py-3 rounded-[1.25rem] max-w-[75%] text-[16px] leading-[24px] ` +
+                  (isUser
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted markdown-content')
+                }
+                style={{ lineHeight: '28px' }}
+              >
+                {isUser ? (
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                ) : (
+                  <MarkdownRenderer content={message.content} />
+                )}
+              </div>
+            </div>
+          </div>
+          {/* 操作按钮 */}
+          <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} h-10 gap-2 items-end text-gray-600 dark:text-[#FAFAFC]`}>
+            {/* 编辑按钮（仅示例，功能可后续实现） */}
+            <button
+              className="flex items-center rounded-lg transition hover:bg-[#F7F8FC] hover:text-purple-500 dark:hover:bg-white/5 dark:hover:text-purple-500 justify-center h-8 w-8 invisible group-hover:visible"
+              aria-label="编辑"
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M16.862 5.487a2.06 2.06 0 1 1 2.915 2.914L8.5 19.678l-4.06.452.452-4.06 11.97-11.97Z"></path></svg>
+            </button>
+            {/* 复制按钮 */}
+            <button
+              className="flex items-center rounded-lg transition hover:bg-[#F7F8FC] hover:text-purple-500 dark:hover:bg-white/5 dark:hover:text-purple-500 justify-center h-8 w-8 invisible group-hover:visible"
+              aria-label="复制"
+              onClick={() => navigator.clipboard.writeText(message.content)}
+            >
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="3" y="3" width="13" height="13" rx="2"/></svg>
+            </button>
+          </div>
         </div>
-        
+        {/* 用户头像 */}
         {isUser && (
-          <Avatar className="ml-2 h-8 w-8">
-            <AvatarFallback>You</AvatarFallback>
-          </Avatar>
+          <div className="flex items-end ml-2">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback>You</AvatarFallback>
+            </Avatar>
+          </div>
         )}
       </div>
     );
@@ -239,9 +278,9 @@ const AgentChat: React.FC = () => {
       </div>
       
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="border-b p-4 flex items-center">
+      <div className="flex-1 flex flex-col bg-background">
+        {/* Header - full width */}
+        <header className="border-b p-4 flex items-center w-full">
           <Button 
             variant="ghost" 
             size="sm"
@@ -260,8 +299,11 @@ const AgentChat: React.FC = () => {
           )}
         </header>
         
+        {/* Centered content with max width */}
+        <div className="flex-1 flex justify-center overflow-hidden">
+          <div className="w-full max-w-[60rem] flex flex-col h-full mx-auto rounded-lg px-5">
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 bg-background">
+            <div className="flex-1 overflow-y-auto p-4 w-full">
           {isFetchingHistory ? (
             <div className="flex justify-center p-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -280,23 +322,87 @@ const AgentChat: React.FC = () => {
                 </div>
               ) : (
                 <>
-                  {messages.map(renderMessage)}
-                  
+                  {messages.map((message, index) => {
+                    const isUser = message.role === 'user';
+                    return (
+                      <div
+                        key={index}
+                        className={`flex w-full relative group mb-6 ${isUser ? 'justify-end' : 'justify-start'}`}
+                      >
+                        {/* AI 头像 */}
+                        {!isUser && (
+                          <div className="flex items-end mr-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src="/agent-avatar.png" alt="Agent" />
+                              <AvatarFallback>AI</AvatarFallback>
+                            </Avatar>
+                          </div>
+                        )}
+                        {/* 消息内容 */}
+                        <div className="w-0 max-w-full flex-auto pl-1">
+                          <div className="w-full">
+                            <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}> 
+                              <div
+                                className={
+                                  `px-5 py-3 rounded-[1.25rem] max-w-[75%] text-[16px] leading-[24px] ` +
+                                  (isUser
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted markdown-content')
+                                }
+                                style={{ lineHeight: '28px' }}
+                              >
+                                {isUser ? (
+                                  <div className="whitespace-pre-wrap">{message.content}</div>
+                                ) : (
+                                  <MarkdownRenderer content={message.content} />
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          {/* 操作按钮 */}
+                          <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} h-10 gap-2 items-end text-gray-600 dark:text-[#FAFAFC]`}>
+                            {/* 编辑按钮（仅示例，功能可后续实现） */}
+                            <button
+                              className="flex items-center rounded-lg transition hover:bg-[#F7F8FC] hover:text-purple-500 dark:hover:bg-white/5 dark:hover:text-purple-500 justify-center h-8 w-8 invisible group-hover:visible"
+                              aria-label="编辑"
+                            >
+                              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M16.862 5.487a2.06 2.06 0 1 1 2.915 2.914L8.5 19.678l-4.06.452.452-4.06 11.97-11.97Z"></path></svg>
+                            </button>
+                            {/* 复制按钮 */}
+                            <button
+                              className="flex items-center rounded-lg transition hover:bg-[#F7F8FC] hover:text-purple-500 dark:hover:bg-white/5 dark:hover:text-purple-500 justify-center h-8 w-8 invisible group-hover:visible"
+                              aria-label="复制"
+                              onClick={() => navigator.clipboard.writeText(message.content)}
+                            >
+                              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><rect x="3" y="3" width="13" height="13" rx="2"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                        {/* 用户头像 */}
+                        {isUser && (
+                          <div className="flex items-end ml-2">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback>You</AvatarFallback>
+                            </Avatar>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                   {/* Show streaming response if any */}
                   {currentStreamContent && (
-                    <div className="flex mb-4 justify-start">
+                    <div className="flex mb-4 justify-start group">
                       <Avatar className="mr-2 h-8 w-8">
                         <AvatarImage src="/agent-avatar.png" alt="Agent" />
                         <AvatarFallback>AI</AvatarFallback>
                       </Avatar>
-                      <div className="max-w-[80%] rounded-lg p-3 bg-muted">
-                        <div className="whitespace-pre-wrap text-sm">
-                          {currentStreamContent}
+                      <div className="max-w-[75%] rounded-[1.25rem] px-5 py-3 bg-muted markdown-content text-[16px] leading-[24px]" style={{ lineHeight: '28px' }}>
+                        <div className="text-sm">
+                          <MarkdownRenderer content={currentStreamContent} />
                         </div>
                       </div>
                     </div>
                   )}
-                  
                   {/* Show loading indicator */}
                   {isLoading && !currentStreamContent && (
                     <div className="flex justify-center my-4">
@@ -315,7 +421,7 @@ const AgentChat: React.FC = () => {
         </div>
         
         {/* Input area */}
-        <div className="border-t p-4 bg-background">
+            <div className="border-t p-4 w-full">
           <div className="relative">
             <Textarea
               value={userInput}
@@ -337,6 +443,8 @@ const AgentChat: React.FC = () => {
           <p className="text-xs text-muted-foreground mt-2 text-right">
             按Enter发送，Shift+Enter换行
           </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
