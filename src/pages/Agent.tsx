@@ -12,6 +12,7 @@ import {
   LinkOutlined,
 } from '@ant-design/icons';
 import { useAgent } from '../hooks/useAgent';
+import type { Agent } from '../types/chat'; // Import Agent as a type
 
 const { Search } = Input;
 
@@ -21,8 +22,8 @@ const Agent: React.FC = () => {
     form,
     editingItem,
     isModalVisible,
-    data,
-    loading,
+    agentList, // Use agentList instead of data
+    isLoading, // Use isLoading instead of loading
     setEditingItem,
     setIsModalVisible,
     onSearch,
@@ -94,9 +95,9 @@ const Agent: React.FC = () => {
       {/* Agent列表 */}
       <List
         grid={{ gutter: 16, column: 3 }}
-        dataSource={data}
-        loading={loading}
-        renderItem={(item) => (
+        dataSource={agentList}
+        loading={isLoading}
+        renderItem={(item: Agent) => ( // Explicitly type item as Agent
           <List.Item>
             <Card
               hoverable

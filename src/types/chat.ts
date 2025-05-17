@@ -46,4 +46,5 @@ export interface Agent {
   id: string;
   name: string;
   description: string;
-} 
+  updated_at: number; // Added updated_at property
+}
