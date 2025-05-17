@@ -45,6 +45,7 @@ const AgentDetail: React.FC = () => {
   
   const [editNameModalVisible, setEditNameModalVisible] = useState(false);
   const [showLLMSettingsModal, setShowLLMSettingsModal] = useState(false);
+  const [showKnowledgeSettingsModal, setShowKnowledgeSettingsModal] = useState(false);
   
   const [llmModels, setLLMModels] = useState<ModelItem[]>([]);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeItem[]>([]);
@@ -88,7 +89,7 @@ const AgentDetail: React.FC = () => {
           mcp: { servers: [] },
           tools: { tool_ids: [] },
           prompt: '',
-          knowledge: { knowledge_ids: [] }
+          knowledge: { knowledge_ids: [], top_k: 3 }
         };
         
         form.setFieldsValue({
@@ -102,7 +103,8 @@ const AgentDetail: React.FC = () => {
           prompt: schema.prompt || '',
           'knowledge.knowledge_ids': schema.knowledge?.knowledge_ids || [],
           'mcp.servers': schema.mcp?.servers || [],
-          'tools.tool_ids': schema.tools?.tool_ids || []
+          'tools.tool_ids': schema.tools?.tool_ids || [],
+          'knowledge.top_k': schema.knowledge?.top_k || 3
         });
         
         nameDescForm.setFieldsValue({
@@ -161,6 +163,7 @@ const AgentDetail: React.FC = () => {
         prompt: values.prompt,
         knowledge: {
           knowledge_ids: values['knowledge.knowledge_ids'],
+          top_k: values['knowledge.top_k']
         },
         mcp: {
           servers: values['mcp.servers'],
@@ -325,15 +328,28 @@ const AgentDetail: React.FC = () => {
                       value: model.ID
                     }))}
                     notFoundContent="暂无可用的AI模型"
+                    onChange={(value) => {
+                      // 当模型改变时，更新表单最大输出长度的限制
+                      const newSelectedModel = llmModels.find(model => model.ID === value);
+                      // 如果当前设置的值超过了新模型的最大值，则调整为新模型的最大值
+                      const currentValue = form.getFieldValue('llm_config.max_output_length');
+                      if (newSelectedModel?.MaxOutputLength && currentValue > newSelectedModel.MaxOutputLength) {
+                        form.setFieldsValue({
+                          'llm_config.max_output_length': newSelectedModel.MaxOutputLength
+                        });
+                      }
+                    }}
                   />
                 </Form.Item>
 
                 <Divider className="my-3" />
                 
                 {/* 提示词部分 */}
-                <div className="flex items-center gap-2 mb-2">
-                  <SendOutlined className="text-blue-600" />
-                  <span className="text-base font-medium">提示词</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <SendOutlined className="text-blue-600" />
+                    <span className="text-base font-medium">提示词</span>
+                  </div>
                 </div>
                 <Form.Item name="prompt" className="mb-4">
                   <TextArea
@@ -346,9 +362,18 @@ const AgentDetail: React.FC = () => {
                 <Divider className="my-3" />
                 
                 {/* 知识库部分 */}
-                <div className="flex items-center gap-2 mb-2">
-                  <DatabaseOutlined className="text-blue-600" />
-                  <span className="text-base font-medium">知识库</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <DatabaseOutlined className="text-blue-600" />
+                    <span className="text-base font-medium">知识库</span>
+                  </div>
+                  <Button 
+                    type="text" 
+                    icon={<SettingOutlined />} 
+                    size="small"
+                    onClick={() => setShowKnowledgeSettingsModal(true)}
+                    className="flex items-center justify-center"
+                  />
                 </div>
                 <Form.Item name="knowledge.knowledge_ids" className="mb-4">
                   <Select
@@ -366,9 +391,11 @@ const AgentDetail: React.FC = () => {
                 <Divider className="my-3" />
                 
                 {/* MCP服务 */}
-                <div className="flex items-center gap-2 mb-2">
-                  <CloudServerOutlined className="text-green-600" />
-                  <span className="text-base font-medium">MCP服务</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <CloudServerOutlined className="text-green-600" />
+                    <span className="text-base font-medium">MCP服务</span>
+                  </div>
                 </div>
                 <Form.Item name="mcp.servers" className="mb-4">
                   <Select
@@ -381,9 +408,11 @@ const AgentDetail: React.FC = () => {
                 <Divider className="my-3" />
                 
                 {/* 工具调用部分 */}
-                <div className="flex items-center gap-2 mb-2">
-                  <ToolOutlined className="text-purple-600" />
-                  <span className="text-base font-medium">工具调用</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <ToolOutlined className="text-purple-600" />
+                    <span className="text-base font-medium">工具调用</span>
+                  </div>
                 </div>
                 <Form.Item name="tools.tool_ids" className="mb-4">
                   <Select
@@ -596,14 +625,19 @@ const AgentDetail: React.FC = () => {
             }
             rules={[{ required: true, message: '请输入最大输出长度' }]}
           >
-            <InputNumber min={1} max={2048} step={1} style={{ width: '100%' }} />
+            <InputNumber 
+              min={1} 
+              max={selectedModel?.MaxOutputLength || 2048} 
+              step={1} 
+              style={{ width: '100%' }} 
+            />
           </Form.Item>
           <Form.Item
             name="llm_config.thinking"
             label={
               <div className="flex items-center gap-1">
-                <span>思考过程</span>
-                <Tooltip title="是否展示AI的思考过程。">
+                <span>深度思考</span>
+                <Tooltip title="是否启用深度思考（暂未实现）">
                   <QuestionCircleOutlined className="text-gray-400" />
                 </Tooltip>
               </div>
@@ -611,6 +645,38 @@ const AgentDetail: React.FC = () => {
             valuePropName="checked"
           >
             <Switch />
+          </Form.Item>
+        </Form>
+      </Modal>
+      
+      {/* 知识库详细设置的弹窗 */}
+      <Modal
+        title="知识库检索设置"
+        open={showKnowledgeSettingsModal}
+        onCancel={() => setShowKnowledgeSettingsModal(false)}
+        onOk={() => setShowKnowledgeSettingsModal(false)}
+        okText="确定"
+        cancelText="取消"
+        maskClosable={false}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+        >
+          <Form.Item
+            name="knowledge.top_k"
+            label={
+              <div className="flex items-center gap-1">
+                <span>召回数量 (top_k)</span>
+                <Tooltip title="每次查询返回的知识片段数量，较大的值可能提高召回率但降低精度">
+                  <QuestionCircleOutlined className="text-gray-400" />
+                </Tooltip>
+              </div>
+            }
+            initialValue={3}
+            rules={[{ required: true, message: '请输入召回数量' }]}
+          >
+            <InputNumber min={1} max={10} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

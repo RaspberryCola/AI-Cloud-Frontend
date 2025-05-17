@@ -16,6 +16,7 @@ export interface AgentToolsConfig {
 
 export interface AgentKnowledgeConfig {
   knowledge_ids: string[];
+  top_k: number;
 }
 
 export interface AgentSchema {
@@ -70,6 +71,7 @@ export interface UpdateAgentRequest {
   prompt?: string;
   knowledge?: {
     knowledge_ids?: string[];
+    top_k?: number;
   };
 }
 
