@@ -9,7 +9,7 @@ import KnowledgeBase from './pages/KnowledgeBase';
 import KnowledgeDetail from './pages/KnowledgeDetail';
 import Agent from './pages/Agent';
 import AgentDetail from './pages/AgentDetail';
-import AgentChat from './pages/AgentChat';
+import { AgentChat } from './components/chat';
 import ModelService from './pages/ModelService';
 import { RootState } from './store';
 

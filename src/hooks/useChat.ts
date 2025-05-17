@@ -1,29 +1,49 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { message } from 'antd';
-import { chatService, ChatMessage, ConversationItem } from '../services/chatService';
+import { Message, ConversationListResponse } from '../types/chat';
+import { chatService } from '../services/chatService';
 
-export const useChat = (agentId: string, convId?: string) => {
+interface UseChatOptions {
+  onError?: (error: Error) => void;
+}
+
+export const useChat = (agentId: string, initialConvId?: string, options?: UseChatOptions) => {
   const navigate = useNavigate();
-  const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [conversations, setConversations] = useState<ConversationListResponse['list']>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [isFetchingConversations, setIsFetchingConversations] = useState(false);
   const [currentStreamContent, setCurrentStreamContent] = useState('');
-  const [activeConversation, setActiveConversation] = useState<string | undefined>(convId);
+  const [activeConversation, setActiveConversation] = useState<string | undefined>(initialConvId);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreConversations, setHasMoreConversations] = useState(true);
   const [totalConversations, setTotalConversations] = useState(0);
+  const eventSourceRef = useRef<EventSource | null>(null);
   const PAGE_SIZE = 10;
 
-  // Update activeConversation when convId changes
-  useEffect(() => {
-    if (convId) {
-      setActiveConversation(convId);
+  // Cleanup function for event source
+  const cleanupEventSource = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
-  }, [convId]);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupEventSource();
+    };
+  }, [cleanupEventSource]);
+
+  // Update activeConversation when initialConvId changes
+  useEffect(() => {
+    if (initialConvId) {
+      setActiveConversation(initialConvId);
+    }
+  }, [initialConvId]);
 
   // Fetch conversations for the agent
   const fetchConversations = useCallback(async (page: number = 1, append: boolean = false) => {
@@ -31,7 +51,7 @@ export const useChat = (agentId: string, convId?: string) => {
     
     setIsFetchingConversations(true);
     try {
-      const response = await chatService.listAgentConversations(agentId, page, PAGE_SIZE, 'desc');
+      const response = await chatService.listAgentConversations(agentId, page, PAGE_SIZE);
       if (response.code === 0) {
         const newConversations = response.data.list;
         setTotalConversations(response.data.total);
@@ -49,15 +69,15 @@ export const useChat = (agentId: string, convId?: string) => {
         
         setCurrentPage(page);
       } else {
-        message.error(response.message || '获取会话列表失败');
+        throw new Error(response.message || 'Failed to fetch conversations');
       }
     } catch (error) {
-      console.error('获取会话列表失败:', error);
-      message.error('获取会话列表失败');
+      console.error('Failed to fetch conversations:', error);
+      options?.onError?.(error instanceof Error ? error : new Error('Failed to fetch conversations'));
     } finally {
       setIsFetchingConversations(false);
     }
-  }, [agentId]);
+  }, [agentId, options]);
 
   // Load more conversations (for infinite scroll)
   const loadMoreConversations = useCallback(() => {
@@ -67,7 +87,7 @@ export const useChat = (agentId: string, convId?: string) => {
   }, [fetchConversations, currentPage, hasMoreConversations, isFetchingConversations]);
 
   // Fetch conversation history
-  const fetchConversationHistory = async (conversationId: string) => {
+  const fetchConversationHistory = useCallback(async (conversationId: string) => {
     if (!conversationId) return;
     
     setIsFetchingHistory(true);
@@ -76,22 +96,22 @@ export const useChat = (agentId: string, convId?: string) => {
       if (response.code === 0) {
         setMessages(response.data.messages || []);
       } else {
-        message.error(response.message || '获取会话历史失败');
+        throw new Error(response.message || 'Failed to fetch conversation history');
       }
     } catch (error) {
-      console.error('获取会话历史失败:', error);
-      message.error('获取会话历史失败');
+      console.error('Failed to fetch conversation history:', error);
+      options?.onError?.(error instanceof Error ? error : new Error('Failed to fetch conversation history'));
     } finally {
       setIsFetchingHistory(false);
     }
-  };
+  }, [options]);
 
   // Create a new conversation
-  const createNewConversation = async (): Promise<string | undefined> => {
+  const createNewConversation = useCallback(async (): Promise<string | undefined> => {
     if (!agentId) return undefined;
     
     try {
-      const response = await chatService.createConversation({ agent_id: agentId });
+      const response = await chatService.createConversation(agentId);
       if (response.code === 0) {
         const newConvId = response.data.conv_id;
         setActiveConversation(newConvId);
@@ -101,17 +121,43 @@ export const useChat = (agentId: string, convId?: string) => {
         fetchConversations(1, false);
         return newConvId;
       } else {
-        message.error(response.message || '创建新会话失败');
+        throw new Error(response.message || 'Failed to create conversation');
       }
     } catch (error) {
-      console.error('创建新会话失败:', error);
-      message.error('创建新会话失败');
+      console.error('Failed to create conversation:', error);
+      options?.onError?.(error instanceof Error ? error : new Error('Failed to create conversation'));
     }
     return undefined;
-  };
+  }, [agentId, navigate, fetchConversations, options]);
+
+  // Delete a conversation
+  const deleteConversation = useCallback(async (conversationId: string): Promise<boolean> => {
+    if (!conversationId) return false;
+    
+    try {
+      const response = await chatService.deleteConversation(conversationId);
+      if (response.code === 0) {
+        // Remove the conversation from the list
+        setConversations(prev => prev.filter(conv => conv.ConvID !== conversationId));
+        
+        // If the active conversation was deleted, create a new one
+        if (activeConversation === conversationId) {
+          createNewConversation();
+        }
+        
+        return true;
+      } else {
+        throw new Error(response.message || 'Failed to delete conversation');
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+      options?.onError?.(error instanceof Error ? error : new Error('Failed to delete conversation'));
+      return false;
+    }
+  }, [activeConversation, createNewConversation, options]);
 
   // Handle sending a message
-  const sendMessage = async (content: string) => {
+  const sendMessage = useCallback(async (content: string) => {
     if (!content.trim()) return;
     
     // Determine if we need to create a new conversation
@@ -121,7 +167,7 @@ export const useChat = (agentId: string, convId?: string) => {
       if (!currentConvId) return;
     }
     
-    const newUserMessage: ChatMessage = {
+    const newUserMessage: Message = {
       role: 'user',
       content
     };
@@ -129,6 +175,10 @@ export const useChat = (agentId: string, convId?: string) => {
     setMessages(prev => [...prev, newUserMessage]);
     setUserInput('');
     setIsLoading(true);
+    setCurrentStreamContent('');
+    
+    // Clean up any existing event source
+    cleanupEventSource();
     
     try {
       const eventSource = chatService.streamConversation({
@@ -137,6 +187,7 @@ export const useChat = (agentId: string, convId?: string) => {
         message: content
       });
       
+      eventSourceRef.current = eventSource;
       let streamedContent = '';
       
       // Listen for message events
@@ -145,7 +196,7 @@ export const useChat = (agentId: string, convId?: string) => {
           streamedContent += event.data;
           setCurrentStreamContent(streamedContent);
         } catch (error) {
-          console.error('处理消息出错:', error);
+          console.error('Error processing message:', error);
         }
       };
       
@@ -153,23 +204,24 @@ export const useChat = (agentId: string, convId?: string) => {
       eventSource.addEventListener('done', () => {
         setMessages(prev => [
           ...prev, 
-          { role: 'assistant', content: streamedContent || '没有收到回复内容' }
+          { role: 'assistant', content: streamedContent || 'No response received' }
         ]);
         setCurrentStreamContent('');
         setIsLoading(false);
         eventSource.close();
+        eventSourceRef.current = null;
         
         // Refresh the first page of conversations to update latest chat
         fetchConversations(1, false);
       });
       
       // Handle errors
-      eventSource.addEventListener('error', (event) => {
-        console.error('聊天错误:', event);
-        let errorMsg = '处理失败: 服务器错误';
+      eventSource.onerror = (event) => {
+        console.error('Chat error:', event);
+        let errorMsg = 'Processing failed: Server error';
         
         if (event instanceof MessageEvent && event.data) {
-          errorMsg = `处理失败: ${event.data}`;
+          errorMsg = `Processing failed: ${event.data}`;
         }
         
         if (!streamedContent) {
@@ -178,33 +230,31 @@ export const useChat = (agentId: string, convId?: string) => {
             { role: 'assistant', content: errorMsg }
           ]);
           setCurrentStreamContent('');
-          setIsLoading(false);
         }
         
-        eventSource.close();
-      });
-      
-      eventSource.addEventListener('close', () => {
         setIsLoading(false);
-      });
-      
+        eventSource.close();
+        eventSourceRef.current = null;
+        
+        options?.onError?.(new Error(errorMsg));
+      };
     } catch (error) {
-      console.error('发送消息失败:', error);
-      message.error('发送消息失败: ' + (error instanceof Error ? error.message : String(error)));
+      console.error('Failed to send message:', error);
       setMessages(prev => [
         ...prev, 
-        { role: 'assistant', content: '发送失败: ' + (error instanceof Error ? error.message : String(error)) }
+        { role: 'assistant', content: 'Failed to send: ' + (error instanceof Error ? error.message : String(error)) }
       ]);
       setIsLoading(false);
+      options?.onError?.(error instanceof Error ? error : new Error('Failed to send message'));
     }
-  };
+  }, [agentId, activeConversation, createNewConversation, cleanupEventSource, fetchConversations, options]);
 
   // Switch to a different conversation
-  const switchConversation = (conversationId: string) => {
+  const switchConversation = useCallback((conversationId: string) => {
     setActiveConversation(conversationId);
     fetchConversationHistory(conversationId);
     navigate(`/chat/${agentId}/${conversationId}`);
-  };
+  }, [agentId, fetchConversationHistory, navigate]);
   
   // Initialize
   useEffect(() => {
@@ -216,7 +266,7 @@ export const useChat = (agentId: string, convId?: string) => {
     if (activeConversation) {
       fetchConversationHistory(activeConversation);
     }
-  }, [activeConversation]);
+  }, [activeConversation, fetchConversationHistory]);
   
   return {
     conversations,
@@ -235,6 +285,7 @@ export const useChat = (agentId: string, convId?: string) => {
     loadMoreConversations,
     fetchConversationHistory,
     createNewConversation,
+    deleteConversation,
     sendMessage,
     switchConversation
   };
