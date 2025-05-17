@@ -102,7 +102,7 @@ const Register: React.FC = () => {
           >
             <Input
               prefix={<PhoneOutlined />}
-              placeholder="手机号（格式：+8613355734398）"
+              placeholder="手机号（格式：+8613312341234）"
               size="large"
             />
           </Form.Item>
