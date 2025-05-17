@@ -7,8 +7,8 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ScrollArea } from '../ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { PlusIcon, SendIcon, TrashIcon, ArrowLeftIcon, AlertCircleIcon } from 'lucide-react';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { PlusIcon, SendIcon, TrashIcon, ArrowLeftIcon, AlertCircleIcon, BotIcon, UserIcon } from 'lucide-react';
 import MarkdownRenderer from '../common/MarkdownRenderer';
 
 // Add CSS for Markdown styling
@@ -131,9 +131,8 @@ const AgentChat: React.FC = () => {
         className={`flex mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}
       >
         {!isUser && (
-          <Avatar className="mr-2 h-8 w-8">
-            <AvatarImage src="/agent-avatar.png" alt="Agent" />
-            <AvatarFallback>AI</AvatarFallback>
+          <Avatar className="mr-2 h-8 w-8 flex items-center justify-center">
+            <BotIcon className="h-5 w-5 text-gray-600" />
           </Avatar>
         )}
         
@@ -154,8 +153,8 @@ const AgentChat: React.FC = () => {
         </div>
         
         {isUser && (
-          <Avatar className="ml-2 h-8 w-8">
-            <AvatarFallback>You</AvatarFallback>
+          <Avatar className="ml-2 h-8 w-8 flex items-center justify-center">
+            <UserIcon className="h-5 w-5 text-gray-600" />
           </Avatar>
         )}
       </div>
@@ -252,27 +251,14 @@ const AgentChat: React.FC = () => {
       <div className="flex-1 flex flex-col bg-background">
         {/* Header - full width */}
         <header className="border-b p-4 flex items-center w-full">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="mr-2"
-            onClick={handleBackClick}
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-          </Button>
           <h1 className="font-semibold text-lg">
             {agent?.name || 'Chat'}
           </h1>
-          {agent?.description && (
-            <span className="ml-2 text-sm text-muted-foreground">
-              {agent.description}
-            </span>
-          )}
         </header>
         
         {/* Centered content with max width */}
         <div className="flex-1 flex justify-center overflow-hidden">
-          <div className="w-full max-w-4xl flex flex-col h-full">
+          <div className="w-full max-w-5xl flex flex-col h-full">
         {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 w-full">
           {isFetchingHistory ? (
@@ -298,9 +284,8 @@ const AgentChat: React.FC = () => {
                   {/* Show streaming response if any */}
                   {currentStreamContent && (
                     <div className="flex mb-4 justify-start">
-                      <Avatar className="mr-2 h-8 w-8">
-                        <AvatarImage src="/agent-avatar.png" alt="Agent" />
-                        <AvatarFallback>AI</AvatarFallback>
+                      <Avatar className="mr-2 h-8 w-8 flex items-center justify-center">
+                        <BotIcon className="h-5 w-5 text-gray-600" />
                       </Avatar>
                       <div className="max-w-[80%] rounded-lg p-3 bg-muted markdown-content">
                         <div className="text-sm">
