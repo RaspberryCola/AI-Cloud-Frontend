@@ -180,67 +180,51 @@ const AgentChat: React.FC = () => {
         }`}
       >
         {/* 顶部Logo和新建对话按钮 */}
-        <div className={`flex flex-col gap-3 p-4 border-b items-stretch ${isSidebarCollapsed ? 'items-center' : ''}`}>
+        <div className={`flex flex-col gap-3 p-4 border-b ${isSidebarCollapsed ? 'items-center' : ''}`}>
           {/* 折叠状态下特殊布局 */}
           {isSidebarCollapsed ? (
-            <div className="flex flex-row items-center w-full justify-between gap-2">
-              {/* 左侧按钮组 */}
-              <div className="flex flex-row items-center gap-2">
-                {/* 展开按钮 */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setIsSidebarCollapsed(false)}
-                  className="h-8 w-8 p-0"
-                  title="展开侧边栏"
-                >
-                  <ChevronRightIcon className="h-4 w-4" />
-                </Button>
-                {/* 新建对话按钮，带文字，宽度自适应 */}
-                <Button
-                  onClick={createNewConversation}
-                  className="flex items-center justify-center bg-primary text-primary-foreground rounded-xl shadow-none border-0 px-4 h-10 font-bold text-base"
-                  title="新建对话"
-                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', borderRadius: '12px' }}
-                >
-                  <PlusIcon className="h-5 w-5 mr-1" /> 新对话
-                </Button>
-                {/* Agent名称在按钮右侧，最大宽度限制，超出省略 */}
-                <span className="ml-2 text-xs font-medium truncate max-w-[120px]" title={agent?.name || '智能助手可提供代码服务'}>
-                  {agent?.name || '智能助手可提供代码服务'}
-                </span>
-              </div>
+            <div className="flex flex-col items-start w-full gap-3 px-4 pt-4">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="h-8 w-8 p-0"
+                title="展开侧边栏"
+              >
+                <ChevronRightIcon className="h-4 w-4" />
+              </Button>
             </div>
           ) : (
-            <>
-              {/* Logo和折叠按钮一行 */}
-              <div className={`flex items-center w-full justify-between`}>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xl text-primary">AI-Cloud-Go</span>
-                </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setIsSidebarCollapsed(true)}
-                  className="h-8 w-8 p-0 ml-2"
-                  title={'折叠侧边栏'}
-                >
-                  <ChevronLeftIcon className="h-4 w-4" />
-                </Button>
+            <div className="flex items-center w-full justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xl text-primary">AI-Cloud-Go</span>
               </div>
-              {/* 新建对话按钮 */}
-              <div className="w-full" style={{ marginTop: 24 }}>
-                <Button
-                  onClick={createNewConversation}
-                  className="w-full justify-start font-bold text-base py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl shadow-none border-0"
-                  style={{ transition: 'background 0.2s' }}
-                >
-                  <PlusIcon className="h-5 w-5 mr-2" /> 新建对话
-                </Button>
-              </div>
-            </>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsSidebarCollapsed(true)}
+                className="h-8 w-8 p-0 ml-2"
+                title={'折叠侧边栏'}
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+              </Button>
+            </div>
           )}
         </div>
+
+        {/* 新建对话按钮 - 独立区域 */}
+        {!isSidebarCollapsed && (
+          <div className="px-3 py-2">
+            <Button
+              onClick={createNewConversation}
+              className="w-full justify-start font-bold text-base py-5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl shadow-none border-0"
+              style={{ transition: 'background 0.2s' }}
+            >
+              <PlusIcon className="h-5 w-5 mr-2" /> 新建对话
+            </Button>
+          </div>
+        )}
+
         {/* 搜索框和分组区域，后续补充 */}
         {!isSidebarCollapsed && (
           <div className="px-4 py-2">
@@ -266,7 +250,7 @@ const AgentChat: React.FC = () => {
                 暂无对话
               </div>
             ) : (
-              <div className="p-2">
+              <div className="p-3">
                 {conversations.map((conversation) => (
                   <div 
                     key={conversation.ConvID}
