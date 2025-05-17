@@ -66,12 +66,6 @@ npm run dev
 npm run build
 ```
 
-### Docker部署
-```bash
-docker build -t ai-cloud .
-docker run -d -p 8081:80 ai-cloud
-```
-
 ## 项目结构
 ```
 src/

@@ -105,7 +105,7 @@ class KnowledgeService {
           }
         }
       
-        const response = await fetch('http://localhost:8080/api/knowledge/stream', {
+        const response = await fetch('/api/knowledge/stream', {
           method: 'POST',
           headers: headers,
           body: JSON.stringify(data),

@@ -1,28 +1,38 @@
-# 构建阶段
-FROM node:18-alpine as build-stage
+# Stage 1: Build the React application
+FROM node:18-alpine as build
 
 WORKDIR /app
 
-# 复制package.json和package-lock.json
+# Copy package.json and package-lock.json
 COPY package*.json ./
 
-# 安装依赖
-RUN npm install
+# Install dependencies
+RUN npm ci
 
-# 复制项目文件
+# Copy the rest of the code
 COPY . .
 
-# 构建项目
+# Build the application
 RUN npm run build
 
-# 生产阶段
-FROM nginx:stable-alpine as production-stage
+# Stage 2: Serve the application with Nginx
+FROM nginx:alpine
 
-# 从构建阶段复制构建结果到nginx目录
-COPY --from=build-stage /app/dist /usr/share/nginx/html
+# Copy the build output from stage 1
+COPY --from=build /app/dist /usr/share/nginx/html
 
-# 暴露80端口
+# Remove the default Nginx configuration
+RUN rm /etc/nginx/conf.d/default.conf
+
+# Add custom nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/
+
+# Expose port 80
 EXPOSE 80
 
-# 启动nginx
-CMD ["nginx", "-g", "daemon off;"] 
+# No environment variables needed for backend config anymore
+
+# Use a custom entrypoint script
+COPY entrypoint.sh /
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"] 
