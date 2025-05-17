@@ -142,16 +142,28 @@ export const useAgent = (agentId?: string, options?: UseAgentOptions) => {
     try {
       const values = await form.validateFields();
       if (editingItem) {
-        // Assuming agentService has an updateAgent function
-        // await agentService.updateAgent(editingItem.id, values);
-        message.success('Agent更新成功');
+        // Update agent with the new name and description
+        const updateData = {
+          id: editingItem.id,
+          name: values.name,
+          description: values.description
+        };
+        const response = await agentService.updateAgent(updateData);
+        
+        if (response.code === 0) {
+          message.success('Agent更新成功');
+          setIsModalVisible(false);
+          fetchAgentList(); // Refresh the list
+        } else {
+          message.error(response.message || 'Agent更新失败');
+        }
       } else {
         // Assuming agentService has a createAgent function
         // await agentService.createAgent(values);
         message.success('Agent创建成功');
+        setIsModalVisible(false);
+        fetchAgentList(); // Refresh the list
       }
-      setIsModalVisible(false);
-      fetchAgentList(); // Refresh the list
     } catch (error) {
       console.error('Failed to save agent:', error);
       message.error('保存Agent失败');

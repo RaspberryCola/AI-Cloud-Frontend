@@ -190,27 +190,47 @@ const AgentDetail: React.FC = () => {
     try {
       const values = await nameDescForm.validateFields();
       
-      // Update the main form values
-      form.setFieldsValue({
+      // Create update data with just name and description
+      const updateData = {
+        id: id!,
         name: values.name,
         description: values.description
-      });
+      };
       
-      // Update agent state
-      if (agent) {
-        setAgent({
-          ...agent,
+      // Update agent using agentService directly
+      setSaving(true);
+      const res = await agentService.updateAgent(updateData);
+      setSaving(false);
+      
+      if (res.code === 0) {
+        message.success('名称和描述更新成功');
+        
+        // Update the main form values
+        form.setFieldsValue({
           name: values.name,
           description: values.description
         });
+        
+        // Update agent state
+        if (agent) {
+          setAgent({
+            ...agent,
+            name: values.name,
+            description: values.description
+          });
+        }
+        
+        setEditNameModalVisible(false);
+        
+        // Refresh agent data
+        fetchAgentData();
+      } else {
+        message.error(res.message || '名称和描述更新失败');
       }
-      
-      setEditNameModalVisible(false);
-      
-      // Save to backend
-      handleSave();
     } catch (error) {
       console.error('更新名称和描述失败:', error);
+      message.error('更新名称和描述失败');
+      setSaving(false);
     }
   };
   
@@ -317,8 +337,8 @@ const AgentDetail: React.FC = () => {
                 </div>
                 <Form.Item name="prompt" className="mb-4">
                   <TextArea
-                    placeholder="在这里输入你的提示词，输入'/'可选择变量"
-                    autoSize={{ minRows: 4, maxRows: 6 }}
+                    placeholder="在这里输入你的提示词"
+                    autoSize={{ minRows: 4, maxRows: 8 }}
                     className="resize-none"
                   />
                 </Form.Item>

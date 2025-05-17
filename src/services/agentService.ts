@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { Agent } from '../types/chat';
 import { ApiResponse } from '../types/common';
+import { UpdateAgentRequest } from '../types/agent';
 
 // Get auth token from localStorage
 const getToken = (): string | null => {
@@ -82,6 +83,24 @@ export const agentService = {
         code: 1, // Non-zero code indicates error
         message: error instanceof Error ? error.message : 'Unknown error fetching agent list',
         data: { list: [], total: 0 } as AgentListResponse
+      };
+    }
+  },
+
+  // Update an agent
+  updateAgent: async (data: UpdateAgentRequest): Promise<ApiResponse<any>> => {
+    try {
+      console.log('Making API request to /agent/update with data:', data);
+      const response = await api.post('/agent/update', data);
+      
+      console.log('API response status:', response.status);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      return {
+        code: 1, // Non-zero code indicates error
+        message: error instanceof Error ? error.message : 'Unknown error updating agent',
+        data: null
       };
     }
   }

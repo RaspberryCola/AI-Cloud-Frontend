@@ -41,6 +41,18 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Custom event source type for SSE handling
+export interface CustomEventSource extends EventTarget {
+  onmessage?: (event: MessageEvent) => void;
+  addEventListener: (type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) => void;
+  close: () => void;
+}
+
+export interface ChatMessage {
+  role: string;
+  content: string;
+}
+
 export const chatService = {
   // Fetch conversation list for a specific agent
   listAgentConversations: async (
@@ -128,8 +140,102 @@ export const chatService = {
     }
   },
 
+  // Debug chat with an agent (without conversation context)
+  debugChat: (data: { agent_id: string, message: string }): CustomEventSource => {
+    const { agent_id, message } = data;
+    const token = getToken();
+    
+    console.log(`Creating debug chat stream for agent ${agent_id} with message: ${message}`);
+    
+    // Create a custom event target to simulate EventSource
+    const eventTarget = new EventTarget();
+    
+    // Add custom dispatch methods to make it easier to use
+    const enhancedEventTarget = eventTarget as CustomEventSource;
+    
+    // Add custom methods
+    enhancedEventTarget.onmessage = undefined;
+    
+    enhancedEventTarget.close = () => {
+      // Cleanup - nothing to do for EventTarget
+    };
+    
+    // Create headers for the request
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      'Accept': 'text/event-stream'
+    });
+    
+    if (token) {
+      headers.append('Authorization', `Bearer ${token}`);
+    }
+    
+    // Make the POST request
+    fetch(`/api/chat/debug`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ agent_id, message }),
+      credentials: 'include'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Stream body reader not available');
+      }
+      
+      // Create a TextDecoder to convert Uint8Array to string
+      const decoder = new TextDecoder();
+      
+      // Process chunks as they arrive
+      const processStream = ({ done, value }: ReadableStreamReadResult<Uint8Array>): Promise<void> => {
+        if (done) {
+          console.log('Debug stream complete');
+          const doneEvent = new Event('done');
+          enhancedEventTarget.dispatchEvent(doneEvent);
+          return Promise.resolve();
+        }
+        
+        // Decode the chunk
+        const chunk = decoder.decode(value, { stream: true });
+        console.log('Received debug chat chunk:', chunk);
+        
+        // Parse SSE format
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const data = line.substring(5).trim();
+            if (data) {
+              const messageEvent = new MessageEvent('message', { data });
+              enhancedEventTarget.dispatchEvent(messageEvent);
+              if (enhancedEventTarget.onmessage) {
+                enhancedEventTarget.onmessage(messageEvent);
+              }
+            }
+          }
+        }
+        
+        // Continue reading
+        return reader.read().then(processStream);
+      };
+      
+      // Start reading the stream
+      return reader.read().then(processStream);
+    })
+    .catch(error => {
+      console.error('Error in debug chat stream:', error);
+      const errorEvent = new ErrorEvent('error', { error });
+      enhancedEventTarget.dispatchEvent(errorEvent);
+    });
+    
+    return enhancedEventTarget;
+  },
+
   // Stream a conversation message
-  streamConversation: (data: ConversationRequest): EventTarget => {
+  streamConversation: (data: ConversationRequest): CustomEventSource => {
     const { agent_id, conv_id, message } = data;
     const token = getToken();
     
@@ -139,29 +245,10 @@ export const chatService = {
     const eventTarget = new EventTarget();
     
     // Add custom dispatch methods to make it easier to use
-    const enhancedEventTarget = eventTarget as EventTarget & {
-      dispatchMessage: (data: string) => void;
-      dispatchDone: () => void;
-      dispatchError: (error: Error) => void;
-      close: () => void;
-      addEventListener: (type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) => void;
-    };
+    const enhancedEventTarget = eventTarget as CustomEventSource;
     
     // Add custom methods
-    enhancedEventTarget.dispatchMessage = (data: string) => {
-      const event = new MessageEvent('message', { data });
-      enhancedEventTarget.dispatchEvent(event);
-    };
-    
-    enhancedEventTarget.dispatchDone = () => {
-      const event = new Event('done');
-      enhancedEventTarget.dispatchEvent(event);
-    };
-    
-    enhancedEventTarget.dispatchError = (error: Error) => {
-      const event = new ErrorEvent('error', { error });
-      enhancedEventTarget.dispatchEvent(event);
-    };
+    enhancedEventTarget.onmessage = undefined;
     
     enhancedEventTarget.close = () => {
       // Cleanup - nothing to do for EventTarget
@@ -201,7 +288,8 @@ export const chatService = {
       const processStream = ({ done, value }: ReadableStreamReadResult<Uint8Array>): Promise<void> => {
         if (done) {
           console.log('Stream complete');
-          enhancedEventTarget.dispatchDone();
+          const doneEvent = new Event('done');
+          enhancedEventTarget.dispatchEvent(doneEvent);
           return Promise.resolve();
         }
         
@@ -215,7 +303,11 @@ export const chatService = {
           if (line.startsWith('data:')) {
             const data = line.substring(5).trim();
             if (data) {
-              enhancedEventTarget.dispatchMessage(data);
+              const messageEvent = new MessageEvent('message', { data });
+              enhancedEventTarget.dispatchEvent(messageEvent);
+              if (enhancedEventTarget.onmessage) {
+                enhancedEventTarget.onmessage(messageEvent);
+              }
             }
           }
         }
@@ -229,7 +321,8 @@ export const chatService = {
     })
     .catch(error => {
       console.error('Error in stream:', error);
-      enhancedEventTarget.dispatchError(error);
+      const errorEvent = new ErrorEvent('error', { error });
+      enhancedEventTarget.dispatchEvent(errorEvent);
     });
     
     return enhancedEventTarget;
