@@ -9,6 +9,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   RobotOutlined,
+  LinkOutlined,
 } from '@ant-design/icons';
 import { useAgent } from '../hooks/useAgent';
 
@@ -34,6 +35,13 @@ const Agent: React.FC = () => {
   useEffect(() => {
     fetchAgentList();
   }, []);
+
+  // 打开Web聊天界面
+  const handleOpenWebChat = (e: React.MouseEvent, agentId: string) => {
+    e.stopPropagation();
+    // 在新标签页中打开聊天界面
+    window.open(`/chat/${agentId}`, '_blank');
+  };
 
   return (
     <div className="p-6">
@@ -111,6 +119,13 @@ const Agent: React.FC = () => {
                   更新时间：{new Date(item.updated_at).toLocaleString()}
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    size="small"
+                    icon={<LinkOutlined />}
+                    onClick={(e) => handleOpenWebChat(e, item.id)}
+                  >
+                    Web使用
+                  </Button>
                   <Button
                     size="small"
                     icon={<EditOutlined />}

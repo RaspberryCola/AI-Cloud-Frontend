@@ -6,6 +6,7 @@ import {
   Modal, Space
 } from 'antd';
 import { Button } from '../components/common';
+import ReactMarkdown from 'react-markdown';
 import { 
   QuestionCircleOutlined, 
   SaveOutlined,
@@ -16,14 +17,18 @@ import {
   DatabaseOutlined,
   ToolOutlined,
   CloudServerOutlined,
-  EditOutlined
+  EditOutlined,
+  LinkOutlined
 } from '@ant-design/icons';
 import { agentService } from '../services/agentService';
 import { modelService } from '../services/modelService';
 import { knowledgeService } from '../services/knowledgeService';
-import { AgentItem, AgentSchema, ChatMessage } from '../types/agent';
+import { AgentItem, AgentSchema } from '../types/agent';
 import { ModelItem } from '../types/model';
 import { KnowledgeItem } from '../types/knowledge';
+import { useDebugChat } from '../hooks/useDebugChat';
+
+import './markdown-styles.css'; // We'll create this file later
 
 const { Header, Content } = Layout;
 const { TextArea } = Input;
@@ -45,11 +50,17 @@ const AgentDetail: React.FC = () => {
   const [llmModels, setLLMModels] = useState<ModelItem[]>([]);
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeItem[]>([]);
   
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [userInput, setUserInput] = useState('');
-  const [testLoading, setTestLoading] = useState(false);
-  const [currentStreamContent, setCurrentStreamContent] = useState('');
-  
+  // Use our new debug chat hook
+  const {
+    messages: chatMessages,
+    userInput,
+    setUserInput,
+    isLoading: testLoading,
+    currentStreamContent,
+    sendMessage: handleSendMessage,
+    clearChat: handleClearChat
+  } = useDebugChat(id || '');
+
   // Fetch agent data
   useEffect(() => {
     if (id) {
@@ -205,113 +216,6 @@ const AgentDetail: React.FC = () => {
     }
   };
   
-  const handleSendMessage = async () => {
-    if (!userInput.trim() || !id) return;
-    
-    const newMessage: ChatMessage = {
-      role: 'user',
-      content: userInput,
-    };
-    
-    setChatMessages(prev => [...prev, newMessage]);
-    setUserInput('');
-    setTestLoading(true);
-    
-    try {
-      console.log('Creating EventSource connection...');
-      // 使用我们的模拟 EventSource
-      const eventSource = agentService.streamExecuteAgent(id, {
-        query: newMessage.content,
-        history: chatMessages,
-      });
-      
-      let streamedContent = '';
-      
-      // 监听消息事件
-      eventSource.onmessage = (event) => {
-        console.log('Received message:', event);
-        try {
-          streamedContent += event.data;
-          setCurrentStreamContent(streamedContent);
-        } catch (error) {
-          console.error('Error processing message:', error);
-        }
-      };
-      
-      // 监听特定消息类型 - 我们的模拟 EventSource 支持这个
-      eventSource.addEventListener('message', (event) => {
-        console.log('Event - message:', event);
-        try {
-          streamedContent += event.data;
-          setCurrentStreamContent(streamedContent);
-        } catch (error) {
-          console.error('Error processing message event:', error);
-        }
-      });
-      
-      // 监听完成事件
-      eventSource.addEventListener('done', (event) => {
-        console.log('Event - done:', event);
-        // 添加 assistant 消息，内容为累积的流式响应
-        setChatMessages(prev => [
-          ...prev, 
-          { role: 'assistant', content: streamedContent || '没有收到回复内容' }
-        ]);
-        setCurrentStreamContent('');
-        setTestLoading(false);
-        
-        // 关闭连接
-        eventSource.close();
-      });
-      
-      // 监听打开事件
-      eventSource.addEventListener('open', (event) => {
-        console.log('Event - open:', event);
-      });
-      
-      // 监听错误事件
-      eventSource.addEventListener('error', (event) => {
-        console.error('Event - error:', event);
-        // 添加错误消息
-        let errorMsg = '执行失败: 服务器错误';
-        
-        // 尝试从事件中读取错误信息
-        if (event instanceof MessageEvent && event.data) {
-          errorMsg = `执行失败: ${event.data}`;
-        }
-        
-        // 如果流内容为空，才添加错误消息
-        if (!streamedContent) {
-          setChatMessages(prev => [
-            ...prev, 
-            { role: 'assistant', content: errorMsg }
-          ]);
-          setCurrentStreamContent('');
-          setTestLoading(false);
-        }
-      });
-      
-      // 监听关闭事件
-      eventSource.addEventListener('close', () => {
-        console.log('EventSource connection closed');
-        setTestLoading(false);
-      });
-      
-    } catch (error) {
-      console.error('测试执行失败:', error);
-      message.error('测试执行失败: ' + (error instanceof Error ? error.message : String(error)));
-      setChatMessages(prev => [
-        ...prev, 
-        { role: 'assistant', content: '执行失败: ' + (error instanceof Error ? error.message : String(error)) }
-      ]);
-      setTestLoading(false);
-    }
-  };
-  
-  const handleClearChat = () => {
-    setChatMessages([]);
-  };
-  
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -347,6 +251,14 @@ const AgentDetail: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-4">
+          <Button 
+            type="default"
+            icon={<LinkOutlined />}
+            onClick={() => window.open(`/chat/${id}`, '_blank')}
+            className="rounded-md focus:outline-none active:outline-none"
+          >
+            使用线上版本
+          </Button>
           <Button 
             type="primary" 
             icon={<SaveOutlined />} 
@@ -529,8 +441,8 @@ const AgentDetail: React.FC = () => {
                           <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs">
                             A
                           </div>
-                          <div className="bg-white border px-3 py-2 rounded-lg whitespace-pre-wrap text-sm">
-                            {message.content}
+                          <div className="bg-white border px-3 py-2 rounded-lg text-sm markdown-content">
+                            <ReactMarkdown>{message.content}</ReactMarkdown>
                           </div>
                         </>
                       )}
@@ -545,8 +457,8 @@ const AgentDetail: React.FC = () => {
                       <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-xs">
                         A
                       </div>
-                      <div className="bg-white border px-3 py-2 rounded-lg whitespace-pre-wrap text-sm">
-                        {currentStreamContent}
+                      <div className="bg-white border px-3 py-2 rounded-lg text-sm markdown-content">
+                        <ReactMarkdown>{currentStreamContent}</ReactMarkdown>
                       </div>
                     </div>
                   </div>
@@ -554,7 +466,7 @@ const AgentDetail: React.FC = () => {
                 
                 {/* Show loading indicator */}
                 {testLoading && !currentStreamContent && (
-                  <div className="flex justify-center">
+                  <div className="flex justify-center my-4">
                     <Spin tip="思考中..." size="small" />
                   </div>
                 )}
@@ -567,7 +479,11 @@ const AgentDetail: React.FC = () => {
                     onChange={(e) => setUserInput(e.target.value)}
                     placeholder="发送消息测试Agent"
                     className="pr-12 rounded-full"
-                    onPressEnter={handleSendMessage}
+                    onPressEnter={() => {
+                      if (userInput.trim() && !testLoading) {
+                        handleSendMessage(userInput);
+                      }
+                    }}
                     disabled={testLoading}
                     size="middle"
                   />
@@ -576,7 +492,7 @@ const AgentDetail: React.FC = () => {
                     shape="circle"
                     icon={<SendOutlined />}
                     className="absolute right-1 top-1/2 transform -translate-y-1/2"
-                    onClick={handleSendMessage}
+                    onClick={() => handleSendMessage(userInput)}
                     disabled={testLoading || !userInput.trim()}
                     size="small"
                   />

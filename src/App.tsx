@@ -9,6 +9,7 @@ import KnowledgeBase from './pages/KnowledgeBase';
 import KnowledgeDetail from './pages/KnowledgeDetail';
 import Agent from './pages/Agent';
 import AgentDetail from './pages/AgentDetail';
+import AgentChat from './pages/AgentChat';
 import ModelService from './pages/ModelService';
 import { RootState } from './store';
 
@@ -20,6 +21,8 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
         <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/" />} />
+        
+        <Route path="/chat/:agent_id/:conv_id?" element={isAuthenticated ? <AgentChat /> : <Navigate to="/login" />} />
         
         <Route path="/" element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" />}>
           <Route index element={<Navigate to="/cloud-drive" replace />} />

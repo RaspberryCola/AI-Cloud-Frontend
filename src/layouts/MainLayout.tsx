@@ -4,10 +4,10 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   CloudOutlined,
   BookOutlined,
-  ReadOutlined,
+  RobotOutlined,
   UserOutlined,
   LogoutOutlined,
-  AppstoreOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { useDispatch } from 'react-redux';
 import { logout } from '../store/authSlice';
@@ -41,17 +41,17 @@ const MainLayout: React.FC = () => {
     },
     {
       key: '/agent',
-      icon: <ReadOutlined />,
+      icon: <RobotOutlined />,
       label: 'Agent',
-    },
-    {
-      key: '/model-service',
-      icon: <AppstoreOutlined />,
-      label: '模型服务',
     },
   ];
 
   const userMenuItems = [
+    {
+      key: '/model-service',
+      icon: <SettingOutlined />,
+      label: '模型设置',
+    },
     {
       key: 'user',
       icon: <UserOutlined />,
@@ -88,7 +88,7 @@ const MainLayout: React.FC = () => {
             selectedKeys={[location.pathname]}
             items={userMenuItems}
             onClick={({ key }) => handleMenuClick(key)}
-            className="border-0"
+            style={{ overflow: 'visible', whiteSpace: 'nowrap', minWidth: 'auto' }}
           />
         </div>
       </Header>
