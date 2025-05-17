@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useChat } from '../../hooks/useChat';
 import { useAgent } from '../../hooks/useAgent';
@@ -8,19 +8,22 @@ import { Textarea } from '../ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { ScrollArea } from '../ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { PlusIcon, SendIcon, TrashIcon, ArrowLeftIcon } from 'lucide-react';
+import { PlusIcon, SendIcon, TrashIcon, ArrowLeftIcon, AlertCircleIcon } from 'lucide-react';
 
 const AgentChat: React.FC = () => {
   const { agent_id, conv_id } = useParams<{ agent_id: string; conv_id?: string }>();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const renderedRef = useRef(false);
   
   // Error handler
-  const handleError = (error: Error) => {
+  const handleError = useCallback((error: Error) => {
     console.error('Error in AgentChat:', error);
+    setError(error.message);
     // You could add a toast notification here
-  };
+  }, []);
 
   // Use our custom hooks
   const { agent, isLoading: isLoadingAgent } = useAgent(
@@ -52,23 +55,46 @@ const AgentChat: React.FC = () => {
     }
   }, [messages, currentStreamContent]);
 
+  // Debug logging - 仅在首次渲染和特定值变化时输出
+  useEffect(() => {
+    // 避免重复日志输出
+    const isFirstRender = !renderedRef.current;
+    if (isFirstRender) {
+      console.log('AgentChat初始渲染，参数:', { agent_id, conv_id });
+      renderedRef.current = true;
+    }
+  }, [agent_id, conv_id]);
+
+  // 当agent或conversations明显变化时记录日志
+  useEffect(() => {
+    if (agent) {
+      console.log('Agent数据已加载:', agent);
+    }
+  }, [agent?.id]);
+  
+  useEffect(() => {
+    if (conversations.length > 0) {
+      console.log('会话数据已加载，数量:', conversations.length);
+    }
+  }, [conversations.length]);
+
   // Handle sending message
-  const handleSendMessage = () => {
+  const handleSendMessage = useCallback(() => {
     if (userInput.trim() && agent_id) {
       sendMessage(userInput);
     }
-  };
+  }, [userInput, agent_id, sendMessage]);
 
   // Handle key press in textarea
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [handleSendMessage]);
 
   // Handle infinite scroll for conversation history
-  const handleSidebarScroll = () => {
+  const handleSidebarScroll = useCallback(() => {
     if (sidebarRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = sidebarRef.current;
       
@@ -77,22 +103,22 @@ const AgentChat: React.FC = () => {
         loadMoreConversations();
       }
     }
-  };
+  }, [hasMoreConversations, isFetchingConversations, loadMoreConversations]);
 
   // Handle back button click
-  const handleBackClick = () => {
+  const handleBackClick = useCallback(() => {
     navigate(-1);
-  };
+  }, [navigate]);
 
   // Handle delete conversation
-  const handleDeleteConversation = (convId: string) => {
-    if (window.confirm('Are you sure you want to delete this conversation?')) {
+  const handleDeleteConversation = useCallback((convId: string) => {
+    if (window.confirm('确定要删除这个对话吗?')) {
       deleteConversation(convId);
     }
-  };
+  }, [deleteConversation]);
 
   // Render a message
-  const renderMessage = (message: Message, index: number) => {
+  const renderMessage = useCallback((message: Message, index: number) => {
     const isUser = message.role === 'user';
     
     return (
@@ -124,26 +150,28 @@ const AgentChat: React.FC = () => {
         )}
       </div>
     );
-  };
+  }, []);
 
-  // Show loading if agent data is still loading
+  // Show loading for initial agent loading only
   if (isLoadingAgent) {
+    console.log('显示Agent加载状态');
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading...</p>
+          <p className="mt-2 text-sm text-muted-foreground">加载Agent详情...</p>
         </div>
       </div>
     );
   }
 
+  console.log('渲染AgentChat UI');
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <div className="w-64 border-r bg-card flex flex-col">
         <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="font-semibold text-lg">Conversations</h2>
+          <h2 className="font-semibold text-lg">历史对话</h2>
           <Button 
             size="sm" 
             onClick={createNewConversation}
@@ -158,16 +186,23 @@ const AgentChat: React.FC = () => {
           viewportRef={sidebarRef}
           onScroll={handleSidebarScroll}
         >
-          {conversations.length === 0 ? (
+          {error && (
+            <div className="p-3 m-2 bg-destructive/10 text-destructive rounded-md text-sm">
+              <AlertCircleIcon className="h-4 w-4 inline mr-1" />
+              {error}
+            </div>
+          )}
+          
+          {conversations.length === 0 && !isFetchingConversations ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              No conversations yet
+              暂无对话
             </div>
           ) : (
             <div className="p-2">
               {conversations.map((conversation) => (
                 <div 
                   key={conversation.ConvID}
-                  className={`flex items-center justify-between p-2 rounded-md cursor-pointer mb-1 ${
+                  className={`flex items-center justify-between p-2 rounded-md cursor-pointer mb-1 group ${
                     conversation.ConvID === conv_id 
                       ? 'bg-accent text-accent-foreground' 
                       : 'hover:bg-accent/50'
@@ -176,7 +211,7 @@ const AgentChat: React.FC = () => {
                 >
                   <div className="truncate flex-1">
                     <span className="text-sm font-medium">
-                      {conversation.Title || 'New Conversation'}
+                      {conversation.Title || '新对话'}
                     </span>
                   </div>
                   <Button
@@ -238,9 +273,9 @@ const AgentChat: React.FC = () => {
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                     <SendIcon className="h-6 w-6 text-primary" />
                   </div>
-                  <h3 className="font-medium text-lg mb-2">Start a conversation</h3>
+                  <h3 className="font-medium text-lg mb-2">开始一个对话</h3>
                   <p className="text-sm text-muted-foreground max-w-sm">
-                    Send a message to start chatting with the AI assistant.
+                    发送消息开始与AI助手聊天
                   </p>
                 </div>
               ) : (
@@ -285,7 +320,7 @@ const AgentChat: React.FC = () => {
             <Textarea
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Type your message..."
+              placeholder="输入您的消息..."
               className="min-h-[80px] pr-12 resize-none"
               onKeyDown={handleKeyDown}
               disabled={isLoading}
@@ -300,7 +335,7 @@ const AgentChat: React.FC = () => {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-right">
-            Press Enter to send, Shift+Enter for new line
+            按Enter发送，Shift+Enter换行
           </p>
         </div>
       </div>

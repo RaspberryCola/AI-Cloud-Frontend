@@ -49,13 +49,20 @@ export const chatService = {
     size: number = 10,
   ): Promise<ApiResponse<ConversationListResponse>> => {
     try {
+      console.log(`Making API request to /chat/list/agent with agent_id=${agentId}, page=${page}, size=${size}`);
       const response = await api.get(`/chat/list/agent`, {
         params: { page, size, agent_id: agentId }
       });
+      console.log('API response status:', response.status);
       return response.data;
     } catch (error) {
       console.error('Error fetching agent conversations:', error);
-      throw error;
+      // Return a structured error response instead of throwing
+      return {
+        code: 1, // Non-zero code indicates error
+        message: error instanceof Error ? error.message : 'Unknown error fetching conversations',
+        data: { list: [], total: 0 } as ConversationListResponse
+      };
     }
   },
 
@@ -64,11 +71,18 @@ export const chatService = {
     agentId: string
   ): Promise<ApiResponse<CreateConversationResponse>> => {
     try {
+      console.log(`Making API request to /chat/create with agent_id=${agentId}`);
       const response = await api.post('/chat/create', { agent_id: agentId });
+      console.log('API response status:', response.status);
       return response.data;
     } catch (error) {
       console.error('Error creating conversation:', error);
-      throw error;
+      // Return a structured error response
+      return {
+        code: 1,
+        message: error instanceof Error ? error.message : 'Unknown error creating conversation',
+        data: { conv_id: '' } as CreateConversationResponse
+      };
     }
   },
 
@@ -77,52 +91,147 @@ export const chatService = {
     convId: string
   ): Promise<ApiResponse<ConversationHistoryResponse>> => {
     try {
+      console.log(`Making API request to /chat/history with conv_id=${convId}`);
       const response = await api.get('/chat/history', {
         params: { conv_id: convId }
       });
+      console.log('API response status:', response.status);
       return response.data;
     } catch (error) {
       console.error('Error fetching conversation history:', error);
-      throw error;
+      // Return structured error response
+      return {
+        code: 1,
+        message: error instanceof Error ? error.message : 'Unknown error fetching history',
+        data: { messages: [] } as ConversationHistoryResponse
+      };
     }
   },
 
   // Delete a conversation
   deleteConversation: async (convId: string): Promise<ApiResponse<null>> => {
     try {
+      console.log(`Making API request to /chat/delete with conv_id=${convId}`);
       const response = await api.delete('/chat/delete', {
         params: { conv_id: convId }
       });
+      console.log('API response status:', response.status);
       return response.data;
     } catch (error) {
       console.error('Error deleting conversation:', error);
-      throw error;
+      // Return structured error response
+      return {
+        code: 1,
+        message: error instanceof Error ? error.message : 'Unknown error deleting conversation',
+        data: null
+      };
     }
   },
 
   // Stream a conversation message
-  streamConversation: (data: ConversationRequest): EventSource => {
+  streamConversation: (data: ConversationRequest): EventTarget => {
     const { agent_id, conv_id, message } = data;
-    const encodedMessage = encodeURIComponent(message);
     const token = getToken();
     
-    // Create a URL with query parameters
-    const url = `/api/chat/stream?agent_id=${agent_id}&conv_id=${conv_id}&message=${encodedMessage}`;
+    console.log(`Creating stream for conversation ${conv_id} with message: ${message}`);
     
-    // Create EventSource with authorization header
-    const eventSource = new EventSource(url, {
-      withCredentials: true
+    // Create a custom event target to simulate EventSource
+    const eventTarget = new EventTarget();
+    
+    // Add custom dispatch methods to make it easier to use
+    const enhancedEventTarget = eventTarget as EventTarget & {
+      dispatchMessage: (data: string) => void;
+      dispatchDone: () => void;
+      dispatchError: (error: Error) => void;
+      close: () => void;
+      addEventListener: (type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) => void;
+    };
+    
+    // Add custom methods
+    enhancedEventTarget.dispatchMessage = (data: string) => {
+      const event = new MessageEvent('message', { data });
+      enhancedEventTarget.dispatchEvent(event);
+    };
+    
+    enhancedEventTarget.dispatchDone = () => {
+      const event = new Event('done');
+      enhancedEventTarget.dispatchEvent(event);
+    };
+    
+    enhancedEventTarget.dispatchError = (error: Error) => {
+      const event = new ErrorEvent('error', { error });
+      enhancedEventTarget.dispatchEvent(event);
+    };
+    
+    enhancedEventTarget.close = () => {
+      // Cleanup - nothing to do for EventTarget
+    };
+    
+    // Create headers for the request
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      'Accept': 'text/event-stream'
     });
     
-    // Create headers for the EventSource
-    const headers = new Headers();
     if (token) {
       headers.append('Authorization', `Bearer ${token}`);
     }
     
-    // Note: We can't use headers with EventSource directly,
-    // but the browser will handle credentials if withCredentials is true
+    // Make the POST request
+    fetch(`/api/chat/stream`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ agent_id, conv_id, message }),
+      credentials: 'include'
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Stream body reader not available');
+      }
+      
+      // Create a TextDecoder to convert Uint8Array to string
+      const decoder = new TextDecoder();
+      
+      // Process chunks as they arrive
+      const processStream = ({ done, value }: ReadableStreamReadResult<Uint8Array>): Promise<void> => {
+        if (done) {
+          console.log('Stream complete');
+          enhancedEventTarget.dispatchDone();
+          return Promise.resolve();
+        }
+        
+        // Decode the chunk
+        const chunk = decoder.decode(value, { stream: true });
+        console.log('Received chunk:', chunk);
+        
+        // Parse SSE format
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const data = line.substring(5).trim();
+            if (data) {
+              enhancedEventTarget.dispatchMessage(data);
+            }
+          }
+        }
+        
+        // Continue reading
+        return reader.read().then(processStream);
+      };
+      
+      // Start reading the stream
+      return reader.read().then(processStream);
+    })
+    .catch(error => {
+      console.error('Error in stream:', error);
+      enhancedEventTarget.dispatchError(error);
+    });
     
-    return eventSource;
+    return enhancedEventTarget;
   }
 }; 

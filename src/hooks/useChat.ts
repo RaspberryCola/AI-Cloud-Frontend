@@ -7,6 +7,15 @@ interface UseChatOptions {
   onError?: (error: Error) => void;
 }
 
+// Types for the custom EventTarget
+interface ChatEventTarget extends EventTarget {
+  dispatchMessage?: (data: string) => void;
+  dispatchDone?: () => void;
+  dispatchError?: (error: Error) => void;
+  close?: () => void;
+  addEventListener: (type: string, listener: EventListener, options?: boolean | AddEventListenerOptions) => void;
+}
+
 export const useChat = (agentId: string, initialConvId?: string, options?: UseChatOptions) => {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<ConversationListResponse['list']>([]);
@@ -20,55 +29,68 @@ export const useChat = (agentId: string, initialConvId?: string, options?: UseCh
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreConversations, setHasMoreConversations] = useState(true);
   const [totalConversations, setTotalConversations] = useState(0);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const eventSourceRef = useRef<ChatEventTarget | null>(null);
+  const initDoneRef = useRef(false);
+  const fetchingRef = useRef(false);
+  const agentIdRef = useRef<string | null>(null);
   const PAGE_SIZE = 10;
 
-  // Cleanup function for event source
+  useEffect(() => {
+    agentIdRef.current = agentId;
+  }, [agentId]);
+
   const cleanupEventSource = useCallback(() => {
     if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+      console.log('Cleaning up EventSource');
+      if (typeof eventSourceRef.current.close === 'function') {
+        eventSourceRef.current.close();
+      }
       eventSourceRef.current = null;
     }
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       cleanupEventSource();
     };
   }, [cleanupEventSource]);
 
-  // Update activeConversation when initialConvId changes
   useEffect(() => {
     if (initialConvId) {
+      console.log('Setting active conversation to:', initialConvId);
       setActiveConversation(initialConvId);
     }
   }, [initialConvId]);
 
-  // Fetch conversations for the agent
   const fetchConversations = useCallback(async (page: number = 1, append: boolean = false) => {
-    if (!agentId) return;
+    if (fetchingRef.current || !agentIdRef.current) {
+      console.log('Already fetching or no agent ID, skipping');
+      return;
+    }
     
+    fetchingRef.current = true;
     setIsFetchingConversations(true);
+    
     try {
-      const response = await chatService.listAgentConversations(agentId, page, PAGE_SIZE);
+      console.log(`Fetching conversations for agent ${agentIdRef.current}, page ${page}`);
+      const response = await chatService.listAgentConversations(agentIdRef.current, page, PAGE_SIZE);
+      console.log('Conversations response:', response);
+      
       if (response.code === 0) {
-        const newConversations = response.data.list;
-        setTotalConversations(response.data.total);
+        const newConversations = response.data.list || [];
+        setTotalConversations(response.data.total || 0);
         
-        // Check if there are more conversations to load
-        setHasMoreConversations(page * PAGE_SIZE < response.data.total);
+        setHasMoreConversations(page * PAGE_SIZE < (response.data.total || 0));
         
         if (append) {
-          // Append new conversations to existing list
           setConversations(prev => [...prev, ...newConversations]);
         } else {
-          // Replace existing conversations
           setConversations(newConversations);
         }
         
         setCurrentPage(page);
       } else {
+        console.error('Failed to fetch conversations:', response.message);
         throw new Error(response.message || 'Failed to fetch conversations');
       }
     } catch (error) {
@@ -76,26 +98,33 @@ export const useChat = (agentId: string, initialConvId?: string, options?: UseCh
       options?.onError?.(error instanceof Error ? error : new Error('Failed to fetch conversations'));
     } finally {
       setIsFetchingConversations(false);
+      fetchingRef.current = false;
     }
-  }, [agentId, options]);
+  }, [options]);
 
-  // Load more conversations (for infinite scroll)
   const loadMoreConversations = useCallback(() => {
     if (hasMoreConversations && !isFetchingConversations) {
+      console.log('Loading more conversations, page:', currentPage + 1);
       fetchConversations(currentPage + 1, true);
     }
   }, [fetchConversations, currentPage, hasMoreConversations, isFetchingConversations]);
 
-  // Fetch conversation history
   const fetchConversationHistory = useCallback(async (conversationId: string) => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      console.log('No conversation ID provided, skipping history fetch');
+      return;
+    }
     
     setIsFetchingHistory(true);
     try {
+      console.log(`Fetching history for conversation ${conversationId}`);
       const response = await chatService.getConversationHistory(conversationId);
+      console.log('Conversation history response:', response);
+      
       if (response.code === 0) {
         setMessages(response.data.messages || []);
       } else {
+        console.error('Failed to fetch history:', response.message);
         throw new Error(response.message || 'Failed to fetch conversation history');
       }
     } catch (error) {
@@ -106,19 +135,38 @@ export const useChat = (agentId: string, initialConvId?: string, options?: UseCh
     }
   }, [options]);
 
-  // Create a new conversation
   const createNewConversation = useCallback(async (): Promise<string | undefined> => {
-    if (!agentId) return undefined;
+    if (!agentIdRef.current) {
+      console.log('No agent ID provided, cannot create conversation');
+      return undefined;
+    }
+    
+    if (isLoading) {
+      console.log('Already loading, skipping conversation creation');
+      return undefined;
+    }
+    
+    setIsLoading(true);
     
     try {
-      const response = await chatService.createConversation(agentId);
+      console.log(`Creating new conversation for agent ${agentIdRef.current}`);
+      const response = await chatService.createConversation(agentIdRef.current);
+      console.log('Create conversation response:', response);
+      
       if (response.code === 0) {
         const newConvId = response.data.conv_id;
+        if (!newConvId) {
+          throw new Error('Server returned empty conversation ID');
+        }
+        
         setActiveConversation(newConvId);
         setMessages([]);
-        navigate(`/chat/${agentId}/${newConvId}`);
-        // Refresh conversations list
-        fetchConversations(1, false);
+        setCurrentStreamContent('');
+        
+        await fetchConversations(1, false);
+        
+        navigate(`/chat/${agentIdRef.current}/${newConvId}`);
+        
         return newConvId;
       } else {
         throw new Error(response.message || 'Failed to create conversation');
@@ -126,22 +174,25 @@ export const useChat = (agentId: string, initialConvId?: string, options?: UseCh
     } catch (error) {
       console.error('Failed to create conversation:', error);
       options?.onError?.(error instanceof Error ? error : new Error('Failed to create conversation'));
+    } finally {
+      setIsLoading(false);
     }
     return undefined;
-  }, [agentId, navigate, fetchConversations, options]);
+  }, [navigate, fetchConversations, options, isLoading]);
 
-  // Delete a conversation
   const deleteConversation = useCallback(async (conversationId: string): Promise<boolean> => {
     if (!conversationId) return false;
     
     try {
+      console.log(`Deleting conversation ${conversationId}`);
       const response = await chatService.deleteConversation(conversationId);
+      console.log('Delete conversation response:', response);
+      
       if (response.code === 0) {
-        // Remove the conversation from the list
         setConversations(prev => prev.filter(conv => conv.ConvID !== conversationId));
         
-        // If the active conversation was deleted, create a new one
         if (activeConversation === conversationId) {
+          console.log('Active conversation was deleted, creating new one');
           createNewConversation();
         }
         
@@ -156,15 +207,25 @@ export const useChat = (agentId: string, initialConvId?: string, options?: UseCh
     }
   }, [activeConversation, createNewConversation, options]);
 
-  // Handle sending a message
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim()) return;
+    if (!content.trim()) {
+      console.log('Empty message, not sending');
+      return;
+    }
     
-    // Determine if we need to create a new conversation
+    if (isLoading) {
+      console.log('Already loading, not sending message');
+      return;
+    }
+    
     let currentConvId = activeConversation;
     if (!currentConvId) {
+      console.log('No active conversation, creating one');
       currentConvId = await createNewConversation();
-      if (!currentConvId) return;
+      if (!currentConvId) {
+        console.error('Failed to create conversation before sending message');
+        return;
+      }
     }
     
     const newUserMessage: Message = {
@@ -177,46 +238,57 @@ export const useChat = (agentId: string, initialConvId?: string, options?: UseCh
     setIsLoading(true);
     setCurrentStreamContent('');
     
-    // Clean up any existing event source
     cleanupEventSource();
     
     try {
-      const eventSource = chatService.streamConversation({
-        agent_id: agentId,
+      console.log(`Sending message to conversation ${currentConvId}`);
+      const eventTarget = chatService.streamConversation({
+        agent_id: agentIdRef.current || '',
         conv_id: currentConvId,
         message: content
       });
       
-      eventSourceRef.current = eventSource;
+      eventSourceRef.current = eventTarget;
       let streamedContent = '';
       
-      // Listen for message events
-      eventSource.onmessage = (event) => {
+      eventTarget.addEventListener('message', ((event: MessageEvent) => {
         try {
-          streamedContent += event.data;
-          setCurrentStreamContent(streamedContent);
+          console.log('Received message event:', event.data);
+          if (event.data) {
+            streamedContent += event.data;
+            setCurrentStreamContent(streamedContent);
+          }
         } catch (error) {
           console.error('Error processing message:', error);
         }
-      };
+      }) as EventListener);
       
-      // Handle completion
-      eventSource.addEventListener('done', () => {
-        setMessages(prev => [
-          ...prev, 
-          { role: 'assistant', content: streamedContent || 'No response received' }
-        ]);
+      eventTarget.addEventListener('done', (() => {
+        console.log('Received done event, streamedContent length:', streamedContent.length);
+        if (streamedContent.length > 0) {
+          setMessages(prev => [
+            ...prev, 
+            { role: 'assistant', content: streamedContent }
+          ]);
+        } else {
+          setMessages(prev => [
+            ...prev, 
+            { role: 'assistant', content: 'No response received' }
+          ]);
+        }
         setCurrentStreamContent('');
         setIsLoading(false);
-        eventSource.close();
-        eventSourceRef.current = null;
         
-        // Refresh the first page of conversations to update latest chat
-        fetchConversations(1, false);
-      });
+        if (eventSourceRef.current === eventTarget) {
+          eventSourceRef.current = null;
+          
+          setTimeout(() => {
+            fetchConversationsRef.current(1, false);
+          }, 500);
+        }
+      }) as EventListener);
       
-      // Handle errors
-      eventSource.onerror = (event) => {
+      eventTarget.addEventListener('error', ((event: ErrorEvent) => {
         console.error('Chat error:', event);
         let errorMsg = 'Processing failed: Server error';
         
@@ -229,15 +301,17 @@ export const useChat = (agentId: string, initialConvId?: string, options?: UseCh
             ...prev, 
             { role: 'assistant', content: errorMsg }
           ]);
-          setCurrentStreamContent('');
         }
         
+        setCurrentStreamContent('');
         setIsLoading(false);
-        eventSource.close();
-        eventSourceRef.current = null;
+        
+        if (eventSourceRef.current === eventTarget) {
+          eventSourceRef.current = null;
+        }
         
         options?.onError?.(new Error(errorMsg));
-      };
+      }) as EventListener);
     } catch (error) {
       console.error('Failed to send message:', error);
       setMessages(prev => [
@@ -247,26 +321,67 @@ export const useChat = (agentId: string, initialConvId?: string, options?: UseCh
       setIsLoading(false);
       options?.onError?.(error instanceof Error ? error : new Error('Failed to send message'));
     }
-  }, [agentId, activeConversation, createNewConversation, cleanupEventSource, fetchConversations, options]);
+  }, [activeConversation, createNewConversation, cleanupEventSource, options, isLoading]);
 
-  // Switch to a different conversation
   const switchConversation = useCallback((conversationId: string) => {
-    setActiveConversation(conversationId);
-    fetchConversationHistory(conversationId);
-    navigate(`/chat/${agentId}/${conversationId}`);
-  }, [agentId, fetchConversationHistory, navigate]);
-  
-  // Initialize
-  useEffect(() => {
-    fetchConversations(1, false);
-  }, [agentId, fetchConversations]);
-  
-  // Handle active conversation changes
-  useEffect(() => {
-    if (activeConversation) {
-      fetchConversationHistory(activeConversation);
+    if (conversationId === activeConversation || isLoading) {
+      console.log('Already on this conversation or loading, not switching');
+      return;
     }
-  }, [activeConversation, fetchConversationHistory]);
+    
+    setIsLoading(true);
+    
+    console.log(`Switching to conversation ${conversationId}`);
+    
+    setActiveConversation(conversationId);
+    setMessages([]);
+    setCurrentStreamContent('');
+    
+    fetchConversationHistory(conversationId).finally(() => {
+      setIsLoading(false);
+    });
+    
+    navigate(`/chat/${agentIdRef.current}/${conversationId}`);
+  }, [activeConversation, fetchConversationHistory, navigate, isLoading]);
+  
+  const fetchConversationsRef = useRef(fetchConversations);
+  
+  useEffect(() => {
+    fetchConversationsRef.current = fetchConversations;
+  }, [fetchConversations]);
+  
+  useEffect(() => {
+    if (!agentId || initDoneRef.current) {
+      return;
+    }
+    
+    console.log(`Initial fetch for agent ${agentId}`);
+    initDoneRef.current = true;
+    
+    if (conversations.length === 0) {
+      fetchConversationsRef.current(1, false);
+    }
+    
+    return () => {
+      console.log("Component unmounting, resetting initialization flag");
+      initDoneRef.current = false;
+    };
+  }, [agentId, conversations.length]);
+  
+  const fetchConversationHistoryRef = useRef(fetchConversationHistory);
+  
+  useEffect(() => {
+    fetchConversationHistoryRef.current = fetchConversationHistory;
+  }, [fetchConversationHistory]);
+  
+  useEffect(() => {
+    if (!activeConversation || isLoading) {
+      return;
+    }
+    
+    console.log(`Fetching history for newly active conversation ${activeConversation}`);
+    fetchConversationHistoryRef.current(activeConversation);
+  }, [activeConversation, isLoading]);
   
   return {
     conversations,

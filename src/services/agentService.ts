@@ -45,11 +45,21 @@ export const agentService = {
   // Get a specific agent by ID
   getAgent: async (agentId: string): Promise<ApiResponse<Agent>> => {
     try {
-      const response = await api.get(`/agent/get?agent_id=${agentId}`);
+      console.log(`Making API request to /agent/get with agent_id=${agentId}`);
+      const response = await api.get(`/agent/get`, {
+        params: { agent_id: agentId }
+      });
+      
+      console.log('API response status:', response.status);
       return response.data;
     } catch (error) {
       console.error('Error fetching agent:', error);
-      throw error;
+      // Return a structured error response instead of throwing
+      return {
+        code: 1, // Non-zero code indicates error
+        message: error instanceof Error ? error.message : 'Unknown error fetching agent',
+        data: null as any
+      };
     }
   },
 
@@ -60,11 +70,19 @@ export const agentService = {
     name?: string 
   }): Promise<ApiResponse<AgentListResponse>> => {
     try {
+      console.log('Making API request to /agent/page with params:', params);
       const response = await api.get('/agent/page', { params });
+      
+      console.log('API response status:', response.status);
       return response.data;
     } catch (error) {
       console.error('Error fetching agent list:', error);
-      throw error;
+      // Return a structured error response instead of throwing
+      return {
+        code: 1, // Non-zero code indicates error
+        message: error instanceof Error ? error.message : 'Unknown error fetching agent list',
+        data: { list: [], total: 0 } as AgentListResponse
+      };
     }
   }
 };
