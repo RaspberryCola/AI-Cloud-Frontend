@@ -87,6 +87,44 @@ export const agentService = {
     }
   },
 
+  // Create a new agent
+  createAgent: async (data: CreateAgentRequest): Promise<ApiResponse<CreateAgentResponse>> => {
+    try {
+      console.log('Making API request to /agent/create with data:', data);
+      const response = await api.post('/agent/create', data);
+      
+      console.log('API response status:', response.status);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      return {
+        code: 1, // Non-zero code indicates error
+        message: error instanceof Error ? error.message : 'Unknown error creating agent',
+        data: null as any
+      };
+    }
+  },
+
+  // Delete an agent
+  deleteAgent: async (agentId: string): Promise<ApiResponse<any>> => {
+    try {
+      console.log(`Making API request to /agent/delete with agent_id=${agentId}`);
+      const response = await api.delete('/agent/delete', {
+        params: { agent_id: agentId }
+      });
+      
+      console.log('API response status:', response.status);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      return {
+        code: 1, // Non-zero code indicates error
+        message: error instanceof Error ? error.message : 'Unknown error deleting agent',
+        data: null
+      };
+    }
+  },
+
   // Update an agent
   updateAgent: async (data: UpdateAgentRequest): Promise<ApiResponse<any>> => {
     try {

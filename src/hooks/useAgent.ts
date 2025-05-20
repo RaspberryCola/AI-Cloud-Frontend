@@ -125,13 +125,19 @@ export const useAgent = (agentId?: string, options?: UseAgentOptions) => {
       cancelText: '取消',
       onOk: async () => {
         try {
-          // Assuming agentService has a deleteAgent function
-          // await agentService.deleteAgent(agentId);
-          message.success('Agent删除成功');
-          fetchAgentList(); // Refresh the list
+          setIsLoading(true);
+          const response = await agentService.deleteAgent(agentId);
+          if (response.code === 0) {
+            message.success('Agent删除成功');
+            fetchAgentList(); // Refresh the list
+          } else {
+            message.error(response.message || 'Agent删除失败');
+          }
         } catch (error) {
           message.error('Agent删除失败');
           console.error('Failed to delete agent:', error);
+        } finally {
+          setIsLoading(false);
         }
       },
     });
@@ -141,6 +147,8 @@ export const useAgent = (agentId?: string, options?: UseAgentOptions) => {
   const handleEditSubmit = useCallback(async () => {
     try {
       const values = await form.validateFields();
+      setIsLoading(true);
+      
       if (editingItem) {
         // Update agent with the new name and description
         const updateData = {
@@ -158,17 +166,29 @@ export const useAgent = (agentId?: string, options?: UseAgentOptions) => {
           message.error(response.message || 'Agent更新失败');
         }
       } else {
-        // Assuming agentService has a createAgent function
-        // await agentService.createAgent(values);
-        message.success('Agent创建成功');
-        setIsModalVisible(false);
-        fetchAgentList(); // Refresh the list
+        // Create a new agent
+        const createData = {
+          name: values.name,
+          description: values.description || ''
+        };
+        const response = await agentService.createAgent(createData);
+        
+        if (response.code === 0) {
+          message.success('Agent创建成功');
+          setIsModalVisible(false);
+          fetchAgentList(); // Refresh the list
+        } else {
+          message.error(response.message || 'Agent创建失败');
+        }
       }
     } catch (error) {
       console.error('Failed to save agent:', error);
       message.error('保存Agent失败');
+    } finally {
+      setIsLoading(false);
     }
   }, [form, editingItem, fetchAgentList]);
+
 
 
   // Initialize - 只在组件挂载时执行一次
